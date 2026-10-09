@@ -1,10 +1,22 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
+<div align="center">
+
 # Cosmoscape
 
-A 3D star map that runs in your browser. Fly from the Milky Way to individual star
-systems, search for stars, and read or edit notes on any object. Built with FastAPI,
-SQLite and three.js.
+**Fly from the Milky Way down to a single star system, right in your browser.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+[![three.js](https://img.shields.io/badge/three.js-r128-black.svg)](https://threejs.org/)
+[![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
+
+<img src="docs/demo.gif" alt="Cosmoscape demo" width="800">
+
+[Quick start](#quick-start) · [Importing data](#importing-data) · [Controls](#controls) · [Credits](CREDITS.md)
+
+</div>
+
+A 3D star map built with FastAPI, SQLite and three.js. Search for stars, enter their
+systems, and read or edit notes on any object.
 
 > **This repository ships no star data.** You build your own local database with
 > `ingest.py`, so every catalog stays with its original source and license.
@@ -12,8 +24,8 @@ SQLite and three.js.
 ## Quick start
 
 ```bash
-git clone https://github.com/roboliveice/cosmoscape.git
-cd Cosmoscape
+git clone https://github.com/robolivice/cosmoscape.git
+cd cosmoscape
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 
