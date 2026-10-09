@@ -1,3 +1,5 @@
+[![MIT License](https://shields.io)](https://choosealicense.com)
+[![GitHub stars](https://shields.io)](https://github.com)
 # Cosmoscape
 
 A 3D star map that runs in your browser. Fly from the Milky Way to individual star
