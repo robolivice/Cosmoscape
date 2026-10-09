@@ -1,4 +1,4 @@
-[![MIT License](https://shields.io)](https://choosealicense.com)
+[![License](https://shields.io)](https://github.com/robolivice/cosmoscape)
 [![GitHub stars](https://shields.io)](https://github.com)
 # Cosmoscape
 
