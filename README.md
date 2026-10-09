@@ -1,5 +1,5 @@
-[![License: MIT](https://shields.io)](https://github.com/robolivice/cosmoscape)
-[![GitHub stars](https://shields.io)](https://github.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
 # Cosmoscape
 
 A 3D star map that runs in your browser. Fly from the Milky Way to individual star
