@@ -1,4 +1,5 @@
 import os, math
+import sys
 import sqlite3
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -7,6 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
 import ingest
 
 DB_NAME = ingest.DB_NAME
@@ -178,12 +182,14 @@ def save_celestial_markdown(celestial_body: str, update: MarkdownUpdate):
         f.write(update.content)
     return {"status": "saved", "file": f"{clean_name}.md"}
 
-if os.path.exists("frontend"):
-    app.mount("/static", StaticFiles(directory="frontend"), name="static")
+FRONTEND_DIR = os.path.join(CURRENT_DIR, "frontend")
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
     @app.get("/")
     def read_index():
-        return FileResponse("frontend/index.html")
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 if __name__ == "__main__":
     import uvicorn
+    os.chdir(CURRENT_DIR)
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -30,8 +30,9 @@ import urllib.request
 
 import numpy as np
 
-DB_NAME = "universe.db"
-MARKDOWN_DIR = "database"
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(CURRENT_DIR, "universe.db")
+MARKDOWN_DIR = os.path.join(CURRENT_DIR, "database")
 LY_PER_PC = 3.26156
 CELL = 0.02
 UA = {"User-Agent": "UniverseNavigator/1.0 (personal project)"}
