@@ -1,6 +1,6 @@
 # Credits
 
-Universe Navigator uses data, images and libraries from the sources below.
+Cosmoscape uses data, images and libraries from the sources below.
 Thank you to everyone who makes these available.
 
 ## Textures and images
@@ -9,15 +9,22 @@ Thank you to everyone who makes these available.
   `earth_night`, `mars`, `jupiter`, `saturn`, `saturn_ring`, `uranus`, `neptune`):
   [Solar System Scope](https://www.solarsystemscope.com/textures/), licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Based on NASA imagery and
-  elevation data.
+  elevation data. Converted to KTX2 for this project.
 - **Milky Way image** (`galaxy_top.jpg`): NASA/JPL-Caltech/R. Hurt (SSC-Caltech),
   [PIA10748, "Our Milky Way Gets a Makeover" (artist's concept)](https://www.jpl.nasa.gov/images/pia10748-our-milky-way-gets-a-makeover-artist-concept/).
   This is an artist's concept, not a photograph. Use of NASA/JPL imagery does not imply
   NASA endorsement of this project.
 
-## Star and planet data (downloaded by the user with `ingest.py`)
+## Star and planet data
 
-No catalog data is distributed in this repository.
+This repository contains no catalog data. `ingest.py` downloads it from the sources
+below, and the premade Windows installer includes a database built from the same
+sources.
+
+HYG and Wikipedia content is licensed under CC BY-SA, so the bundled database is
+distributed under CC BY-SA, with the credits below. The other sources keep their own
+terms and acknowledgements. Curated entries and generated galaxy stars are original to
+this project, and the generated stars are placeholders, not real catalog data.
 
 - **Gaia DR3**: This work has made use of data from the European Space Agency (ESA)
   mission Gaia (https://www.cosmos.esa.int/gaia), processed by the Gaia Data Processing
@@ -39,15 +46,30 @@ No catalog data is distributed in this repository.
 
 ## Software and fonts
 
-- [three.js](https://threejs.org/) r128 (MIT), loaded from jsDelivr
-- [marked](https://github.com/markedjs/marked) 4.3.0 (MIT), loaded from jsDelivr
+Bundled with the app (stored in `frontend/vendor/` and `frontend/fonts/`, no CDN needed):
+
+- [three.js](https://threejs.org/) r147 (MIT)
+- [marked](https://github.com/markedjs/marked) (MIT)
+- [Space Mono](https://fonts.google.com/specimen/Space+Mono) (SIL OFL)
+- [Basis Universal](https://github.com/BinomialLLC/basis_universal) transcoder (Apache-2.0),
+  [ktx-parse](https://github.com/donmccurdy/ktx-parse) (MIT) and
+  [zstddec](https://github.com/donmccurdy/zstddec) (MIT), used by three.js `KTX2Loader`
+
+Used to run and build:
+
 - [FastAPI](https://fastapi.tiangolo.com/) (MIT), [Uvicorn](https://www.uvicorn.org/)
-  (BSD), [Pydantic](https://docs.pydantic.dev/) (MIT), [NumPy](https://numpy.org/) (BSD)
-- [Space Mono](https://fonts.google.com/specimen/Space+Mono) via Google Fonts (SIL OFL)
+  (BSD), [Pydantic](https://docs.pydantic.dev/) (MIT),
+  [platformdirs](https://github.com/tox-dev/platformdirs) (MIT),
+  [NumPy](https://numpy.org/) (BSD, used by `ingest.py` only)
+- [Electron](https://www.electronjs.org/) (MIT) and
+  [electron-builder](https://www.electron.build/) (MIT) for the desktop app
+- [PyInstaller](https://pyinstaller.org/) (GPL-2.0 with a bootloader exception that
+  allows bundling non-GPL apps) for the desktop backend
 - Search bar styling adapted from a component by Navarog21 on
   [Uiverse.io](https://uiverse.io/) (MIT)
 
 ## Licensing note
 
 The project's own code is MIT (see `LICENSE`). That license does **not** cover the
-textures or any catalog data you import; those remain under the licenses listed above.
+textures or the star data, including the database in the premade installer. Those remain
+under the licenses listed above.

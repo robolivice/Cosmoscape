@@ -2,26 +2,30 @@
 
 # Cosmoscape
 
-**Fly from the Milky Way down to a single star system, right in your browser.**
+**Fly from the Milky Way down to a single star system, right in your browser or as a desktop app.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![three.js](https://img.shields.io/badge/three.js-r128-black.svg)](https://threejs.org/)
+[![three.js](https://img.shields.io/badge/three.js-r147-black.svg)](https://threejs.org/)
+[![Electron](https://img.shields.io/badge/Electron-desktop-47848f.svg)](https://www.electronjs.org/)
 [![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
 
 <img src="docs/demo.gif" alt="Cosmoscape demo" width="800">
 
-[Quick start](#quick-start) · [Importing data](#importing-data) · [Controls](#controls) · [Credits](CREDITS.md)
+[Quick start](#quick-start-web-version) · [Desktop app](#desktop-app-electron) · [Importing data](#importing-data) · [Controls](#controls) · [Credits](CREDITS.md)
 
 </div>
 
 A 3D star map built with FastAPI, SQLite and three.js. Search for stars, enter their
-systems, and read or edit notes on any object.
+systems, and read or edit notes on any object. It runs in a browser or as an Electron
+desktop app. Both versions share the same features.
 
 > **This repository ships no star data.** You build your own local database with
 > `ingest.py`, so every catalog stays with its original source and license.
+> The premade Windows installer on the Releases page includes a ready-made database.
+> See [CREDITS.md](CREDITS.md) for its licensing.
 
-## Quick start
+## Quick start (web version)
 
 ```bash
 git clone https://github.com/robolivice/cosmoscape.git
@@ -39,8 +43,69 @@ Open http://127.0.0.1:8000
 Run `python ingest.py --all` **before the first launch**. Without it you only get about
 35 hand-picked stars and landmarks, and the other galaxies have no stars at all.
 
-Need only the viewer with minimal data? Use `pip install -r requirements.txt` and
-`python ingest.py --curated --galaxies`.
+Need only the viewer with minimal data? You can skip `--all` and run
+`python ingest.py --curated --galaxies` instead (still install
+`requirements-ingest.txt`, because `ingest.py` imports numpy).
+
+### Where your data is stored
+
+The database (`universe.db`) and your notes (`database/*.md`) are stored in your user
+data folder, not in the repository:
+
+| OS | Location |
+|---|---|
+| Windows | `C:\Users\<you>\AppData\Local\Cosmoscape` |
+| macOS | `~/Library/Application Support/Cosmoscape` |
+| Linux | `~/.local/share/Cosmoscape` |
+
+Set the `COSMOSCAPE_DATA` environment variable to use a different folder.
+Downloaded catalog caches (for example the Gaia download) stay in `./data/`.
+
+## Desktop app (Electron)
+
+The desktop app wraps the same FastAPI backend and frontend in an Electron window. The
+backend starts on a free local port and is stopped when you close the app.
+
+**Requirements:** Node.js 18+, Python 3.10+, and PyInstaller for building.
+
+### Run in development
+
+```bash
+npm install
+pip install -r requirements.txt
+npm start
+```
+
+`npm start` launches Electron, which starts `python main.py` in the background.
+
+### Build an installer
+
+1. Build your database once with `python ingest.py --all`.
+2. Create a `seed/` folder in the project root and copy the finished `universe.db` into
+   it as `seed/universe.db`. The installed app copies it into the user data folder on
+   first launch.
+3. Optionally, put your notes in `seed/database/` to ship them as well.
+4. Build:
+
+```bash
+pip install pyinstaller
+npm run build:backend
+npm run dist
+```
+
+The installer ends up in `release/` (NSIS on Windows, DMG on macOS, AppImage on Linux).
+Icons are read from `build/`.
+
+`package_db.py` compresses a database into `universe.db.gz` and prints its SHA256, for
+hosting a downloadable copy. Set `DB_URL` and `DB_SHA256` in `main.py` to use it.
+
+## Premade installer
+
+If you don't want to build anything yourself, download the latest installer from the
+[Releases](https://github.com/robolivice/cosmoscape/releases) page. It is currently
+available for Windows only, with other platforms planned. It includes the full star
+database, so you don't need to run `ingest.py`. The bundled database is fixed. For a
+custom database or installer, follow the **Desktop app** section above.
 
 ## Importing data
 
@@ -53,7 +118,7 @@ Need only the viewer with minimal data? Use `pip install -r requirements.txt` an
 | `--vizier` | VizieR | Open clusters (Cantat-Gaudin et al. 2020). |
 | `--gaia [N]` | Gaia DR3 | N brightest stars within about 3 kpc (default 300000). Slowest; the download is cached in `data/`. |
 | `--galaxies [N]` | generated | Placeholder stars for the other galaxies. Needs `--curated` (or `--all`) on a fresh database. |
-| `--wiki [N]` | Wikipedia | Writes summaries into `database/*.md`. |
+| `--wiki [N]` | Wikipedia | Writes summaries into the `database/` notes folder. |
 | `--all` | everything | Runs all of the above in the right order. |
 
 Flags can be combined, e.g. `python ingest.py --curated --exo --gaia 100000`.
@@ -71,18 +136,25 @@ Re-running is safe; duplicates between catalogs are detected by sky position.
 
 ## Textures
 
-The repository needs the images listed in `frontend/textures/README.md`.
-They are not covered by this project's license; see `CREDITS.md`.
+The repository needs the images listed in `frontend/textures/README.md`. The planet,
+Sun and ring textures are loaded as compressed KTX2 files. They are not covered by this
+project's license; see `CREDITS.md`.
 
 ## Project layout
 
-See the tree in this repo: `main.py` (API), `ingest.py` (catalog loader),
-`frontend/` (page, styles, scripts, textures), `tools/` (helper scripts).
+- `main.py`: FastAPI backend
+- `ingest.py`: catalog loader and database helpers
+- `frontend/`: page, styles, scripts, fonts, vendored libraries, textures
+- `electron/`: desktop shell (`main.js`, `loading.html`)
+- `build_backend.py`: bundles the backend with PyInstaller
+- `package_db.py`: compresses a database for hosting
+- `build/`: app icons for the installers
+- `tools/`: helper scripts
 
 ## License
 
-Code: MIT, see `LICENSE`. Textures and imported catalog data keep their original
-licenses, see `CREDITS.md`.
+Code: MIT, see `LICENSE`. Textures and star data (including the database in the
+premade installer) keep their original licenses, see `CREDITS.md`.
 
 ## Credits
 
