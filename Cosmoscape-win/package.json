@@ -1,0 +1,49 @@
+{
+  "name": "cosmoscape",
+  "version": "1.0.0",
+  "description": "3D star map from the Milky Way down to a single star system",
+  "author": "robolivice",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:backend": "python build_backend.py",
+    "dist": "electron-builder --publish never"
+  },
+  "build": {
+    "appId": "com.cosmoscape.app",
+    "productName": "Cosmoscape",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/cosmoscape-backend",
+        "to": "backend"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/windows/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/macos/icon.icns",
+      "category": "public.app-category.education"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/linux/512x512.png",
+      "category": "Education"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "three": "^0.147.0"
+  }
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Cosmoscape</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #wrap {
+      position: fixed;
+      inset: 0;
+      transition: opacity .7s ease;
+      color: #00f3ff;
+      font-family: "Space Mono", Consolas, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      background:
+        radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+        radial-gradient(1px 1px at 70% 20%, #fff6, transparent),
+        radial-gradient(1.5px 1.5px at 40% 80%, #fff7, transparent),
+        radial-gradient(1px 1px at 85% 65%, #fff6, transparent),
+        radial-gradient(1px 1px at 10% 75%, #fff5, transparent),
+        radial-gradient(ellipse at center, #07131f 0%, #000 70%);
+    }
+
+    body.out #wrap {
+      opacity: 0;
+    }
+
+    .orbit {
+      position: relative;
+      width: 96px;
+      height: 96px;
+    }
+
+    .orbit::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid #00f3ff33;
+      border-radius: 50%;
+    }
+
+    .star {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      margin: -7px;
+      border-radius: 50%;
+      background: #ffd27a;
+      box-shadow: 0 0 18px 4px #ffb84d88;
+    }
+
+    .planet {
+      position: absolute;
+      inset: 0;
+      animation: spin 2.4s linear infinite;
+      animation-delay: var(--o1, 0ms);
+    }
+
+    .planet::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -5px;
+      width: 10px;
+      height: 10px;
+      margin-left: -5px;
+      border-radius: 50%;
+      background: #00f3ff;
+      box-shadow: 0 0 12px #00f3ff;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+    }
+
+    #msg {
+      font-size: 13px;
+      color: #7fdfe6;
+      letter-spacing: 0.1em;
+      min-height: 1.2em;
+    }
+
+    .dots::after {
+      content: "";
+      animation: dots 1.4s steps(4) infinite;
+      animation-delay: var(--o2, 0ms);
+    }
+
+    @keyframes dots {
+      0% {
+        content: "";
+      }
+
+      25% {
+        content: ".";
+      }
+
+      50% {
+        content: "..";
+      }
+
+      75% {
+        content: "...";
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div class="orbit">
+      <div class="star"></div>
+      <div class="planet"></div>
+    </div>
+    <h1>COSMOSCAPE</h1>
+    <div id="msg"><span id="txt">Starting systems</span><span class="dots"></span></div>
+  </div>
+  <script>
+    const t = Date.now();
+    document.documentElement.style.setProperty('--o1', -(t % 2400) + 'ms');
+    document.documentElement.style.setProperty('--o2', -(t % 1400) + 'ms');
+  </script>
+</body>
+
+</html>
