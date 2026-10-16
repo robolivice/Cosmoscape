@@ -159,8 +159,8 @@ async function start() {
   const fit = () => {
     const b = win.getContentBounds();
     const r = { x: 0, y: 0, width: b.width, height: b.height };
-    appView.setBounds(r);
-    loadingView.setBounds(r);
+    if (appView) appView.setBounds(r);
+    if (loadingView) loadingView.setBounds(r);
   };
   fit();
   win.on("resize", fit);
@@ -197,9 +197,10 @@ async function start() {
   await loadingView.webContents.executeJavaScript("document.body.classList.add('out')").catch(() => {});
   await new Promise((r) => setTimeout(r, 750));   // let the fade finish
   if (win.isDestroyed()) return;
-  win.contentView.removeChildView(loadingView);
-  loadingView.webContents.close();
+  const lv = loadingView;
   loadingView = null;
+  win.contentView.removeChildView(lv);
+  lv.webContents.close();
 }
 
 if (!app.requestSingleInstanceLock()) {
