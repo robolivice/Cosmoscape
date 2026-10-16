@@ -104,7 +104,7 @@ def get_galaxy_stars(name: str, limit: int = 40000):
         if room:
             rows += conn.execute(
                 f"SELECT {cols} FROM stars WHERE galaxy = ? AND kind = 'star' AND source != 'synthetic' AND curated = 0 AND has_planets = 0 "
-                "ORDER BY RANDOM() LIMIT ?", (name, room)).fetchall()
+                "ORDER BY rnd LIMIT ?", (name, room)).fetchall()
     squash = MW_Z_SQUASH if name == "Milky_Way" else 1.0
     stars = []
     for n, x, y, z, mag, teff, cur in rows:

@@ -189,6 +189,14 @@ def init_schema(conn):
     except sqlite3.OperationalError as e:
         print("note: SQLite R*Tree not available, using plain indexes instead:", e)
     conn.commit()
+    cols = []
+    for row in conn.execute("PRAGMA table_info(stars)").fetchall():
+        cols.append(row[1])
+    if "rnd" not in cols:
+        conn.execute("ALTER TABLE stars ADD COLUMN rnd REAL")
+    conn.execute("UPDATE stars SET rnd = ((id * 2654435761) % 4294967296) / 4294967296.0 WHERE rnd IS NULL")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_stars_galaxy_rnd ON stars(galaxy, rnd)")
+    conn.commit()
     os.makedirs(MARKDOWN_DIR, exist_ok=True)
 
 

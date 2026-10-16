@@ -95,9 +95,20 @@
 		</div>
 	</div>
 
-	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-	<script src="static/scripts.js"></script>
+	<script type="importmap">
+	{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js" } }
+	</script>
+	<script type="module">
+		import * as T from 'three';
+		import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/controls/OrbitControls.js';
+		import { KTX2Loader } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/loaders/KTX2Loader.js';
+
+		window.THREE = { ...T, OrbitControls, KTX2Loader };
+
+		const s = document.createElement('script');
+		s.src = 'static/scripts.js';
+		document.body.appendChild(s);
+</script>
 </body>
 </html>

@@ -8,9 +8,27 @@ let currentStar = null;
 let currentMarkdown = "";
 const clock = new THREE.Clock();
 const textureLoader = new THREE.TextureLoader();
-const dayTexture = textureLoader.load('/static/textures/earth_day.jpg');
-const nightTexture = textureLoader.load('/static/textures/earth_night.jpg');
-const starTex = textureLoader.load('/static/textures/sun.jpg');
+
+renderer = new THREE.WebGLRenderer({ antialias: true });
+const ktx2Loader = new THREE.KTX2Loader()
+    .setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/basis/')
+    .detectSupport(renderer);
+
+function loadTex(url) {
+    if (!url.endsWith('.ktx2')) return textureLoader.load(url);
+    const tex = new THREE.CompressedTexture();
+    ktx2Loader.load(url, loaded => {
+        tex.copy(loaded);
+        tex.encoding = THREE.LinearEncoding;   // keeps the same look as your old jpg/png textures
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        tex.needsUpdate = true;
+    }, undefined, err => console.error('KTX2 failed:', url, err));
+    return tex;
+}
+
+const dayTexture = loadTex('/static/textures/earth_day.ktx2');
+const nightTexture = loadTex('/static/textures/earth_night.ktx2');
+const starTex = loadTex('/static/textures/sun.ktx2');
 const AU_UNIT = 20;
 const au = v => v * AU_UNIT;
 let activeSystem = null;
@@ -251,7 +269,7 @@ function makeDiscMask() {
 }
 
 function createGalaxyMesh(g) {
-    const tex = g.texture ? textureLoader.load(g.texture) : makeGalaxyTexture();
+    const tex = g.texture ? loadTex(g.texture) : makeGalaxyTexture();
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     const isMW = g.name === 'Milky_Way';
@@ -504,7 +522,7 @@ function makeDotTexture() {
 const dotTex = makeDotTexture();
 const YEAR_SECONDS = 10;
 const DAY_SECONDS = 4;
-const ringTex = textureLoader.load('/static/textures/saturn_ring.png');
+const ringTex = loadTex('/static/textures/saturn_ring.ktx2');
 let hitTargets = [];
 
 function orbitSpeed(def) {
@@ -551,7 +569,6 @@ function initEngine() {
     earthMaterial.uniforms.uSunDirection.value.copy(sun.position).normalize();
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 30000);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -833,14 +850,14 @@ const REAL_SYSTEMS = {
         stars: [{
             name: 'Sol', color: 0xffffff, size: 2,
             planets: [
-                { orbit: au(0.387), size: 0.3, period: 87.97, spinHours: 1407.6, tilt: 0.03, texture: '/static/textures/mercury.jpg' },
-                { orbit: au(0.723), size: 0.55, period: 224.7, spinHours: 5832.5, tilt: 177.4, texture: '/static/textures/venus.jpg' },
-                { orbit: au(1.0), size: 0.6, period: 365.25, spinHours: 23.93, tilt: 23.4, texture: '/static/textures/earth.png' },
-                { orbit: au(1.524), size: 0.4, period: 687, spinHours: 24.62, tilt: 25.2, texture: '/static/textures/mars.jpg' },
-                { orbit: au(5.203), size: 1.3, period: 4332.6, spinHours: 9.93, tilt: 3.1, texture: '/static/textures/jupiter.jpg' },
-                { orbit: au(9.537), size: 1.1, period: 10759, spinHours: 10.66, tilt: 26.7, texture: '/static/textures/saturn.jpg', ring: true },
-                { orbit: au(19.19), size: 0.8, period: 30687, spinHours: 17.24, tilt: 97.8, texture: '/static/textures/uranus.jpg' },
-                { orbit: au(30.07), size: 0.8, period: 60190, spinHours: 16.11, tilt: 28.3, texture: '/static/textures/neptune.jpg' }
+                { orbit: au(0.387), size: 0.3, period: 87.97, spinHours: 1407.6, tilt: 0.03, texture: '/static/textures/mercury.ktx2' },
+                { orbit: au(0.723), size: 0.55, period: 224.7, spinHours: 5832.5, tilt: 177.4, texture: '/static/textures/venus.ktx2' },
+                { orbit: au(1.0), size: 0.6, period: 365.25, spinHours: 23.93, tilt: 23.4, texture: '/static/textures/earth.ktx2' },
+                { orbit: au(1.524), size: 0.4, period: 687, spinHours: 24.62, tilt: 25.2, texture: '/static/textures/mars.ktx2' },
+                { orbit: au(5.203), size: 1.3, period: 4332.6, spinHours: 9.93, tilt: 3.1, texture: '/static/textures/jupiter.ktx2' },
+                { orbit: au(9.537), size: 1.1, period: 10759, spinHours: 10.66, tilt: 26.7, texture: '/static/textures/saturn.ktx2', ring: true },
+                { orbit: au(19.19), size: 0.8, period: 30687, spinHours: 17.24, tilt: 97.8, texture: '/static/textures/uranus.ktx2' },
+                { orbit: au(30.07), size: 0.8, period: 60190, spinHours: 16.11, tilt: 28.3, texture: '/static/textures/neptune.ktx2' }
             ]
         }]
     },
@@ -913,7 +930,7 @@ function createStarSystem(star, lite) {
             if (def.texture && def.texture.includes('earth')) {
                 mat = earthMaterial;
             } else if (def.texture) {
-                mat = new THREE.MeshStandardMaterial({ map: textureLoader.load(def.texture) });
+                mat = new THREE.MeshStandardMaterial({ map: loadTex(def.texture) });
             } else {
                 mat = new THREE.MeshStandardMaterial({ color: def.color, roughness: 0.8 });
             }
