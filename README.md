@@ -29,7 +29,7 @@ desktop app. Both versions share the same features.
 
 ```bash
 git clone https://github.com/robolivice/cosmoscape.git
-cd cosmoscape
+cd cosmoscape/Cosmoscape-web
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 
@@ -68,9 +68,13 @@ backend starts on a free local port and is stopped when you close the app.
 
 **Requirements:** Node.js 18+, Python 3.10+, and PyInstaller for building.
 
+The desktop app lives in the `Cosmoscape-win/` folder. Run every command in this
+section from there, because the build script uses relative paths.
+
 ### Run in development
 
 ```bash
+cd cosmoscape/Cosmoscape-win
 npm install
 pip install -r requirements.txt
 npm start
@@ -81,9 +85,10 @@ npm start
 ### Build an installer
 
 1. Build your database once with `python ingest.py --all`.
-2. Create a `seed/` folder in the project root and copy the finished `universe.db` into
-   it as `seed/universe.db`. The installed app copies it into the user data folder on
-   first launch.
+2. Copy the finished `universe.db` into the existing `seed/` folder in `Cosmoscape-win/`
+   as `seed/universe.db`. The folder is kept in the repository by a `.gitkeep` file. The
+   build fails if `seed/universe.db` is missing. The installed app copies the database
+   into the user data folder on first launch.
 3. Optionally, put your notes in `seed/database/` to ship them as well.
 4. Build:
 
@@ -142,11 +147,18 @@ project's license; see `CREDITS.md`.
 
 ## Project layout
 
+The repository has two folders with the same features:
+
+- `Cosmoscape-web/`: the browser version (run with `python main.py`)
+- `Cosmoscape-win/`: the Electron desktop version and installer build
+
+Inside each folder:
+
 - `main.py`: FastAPI backend
 - `ingest.py`: catalog loader and database helpers
 - `frontend/`: page, styles, scripts, fonts, vendored libraries, textures
-- `electron/`: desktop shell (`main.js`, `loading.html`)
-- `build_backend.py`: bundles the backend with PyInstaller
+- `electron/`: desktop shell (`main.js`, `loading.html`), `Cosmoscape-win/` only
+- `build_backend.py`: bundles the backend with PyInstaller, `Cosmoscape-win/` only
 - `package_db.py`: compresses a database for hosting
 - `build/`: app icons for the installers
 - `tools/`: helper scripts
