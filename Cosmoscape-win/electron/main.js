@@ -1,5 +1,6 @@
 const { app, BrowserWindow, WebContentsView, dialog, shell } = require("electron");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 const net = require("net");
 
@@ -12,6 +13,7 @@ let win = null;
 let loadingView = null;
 let appView = null;
 let quitting = false;
+let backendPort = null;
 
 function freePort() {
   return new Promise((resolve) => {
@@ -45,10 +47,82 @@ async function waitForBackend(port) {
   return false;
 }
 
+function spawnBackend(port) {
+  const c = backendCommand(port);
+  const proc = spawn(c.cmd, c.args, {
+    cwd: c.cwd,
+    windowsHide: true,
+    stdio: app.isPackaged ? "ignore" : "inherit",
+  });
+  backend = proc;
+  proc.on("exit", () => {
+    if (backend !== proc) return;   // old or killed process, ignore
+    backend = null;
+    if (!quitting) {
+      dialog.showErrorBox("Cosmoscape", "The backend stopped unexpectedly.");
+      app.quit();
+    }
+  });
+  return proc;
+}
+
 function killBackend() {
   if (backend) {
-    try { backend.kill(); } catch (e) {}
+    const proc = backend;
     backend = null;
+    try {
+      if (process.platform === "win32") {
+        spawnSync("taskkill", ["/pid", String(proc.pid), "/T", "/F"]);
+      } else {
+        proc.kill();
+      }
+    } catch (e) {}
+  }
+}
+
+async function restartBackend() {
+  const old = backend;
+  backend = null;
+  if (old) {
+    const gone = new Promise((r) => old.once("exit", r));
+    try {
+      if (process.platform === "win32") {
+        spawnSync("taskkill", ["/pid", String(old.pid), "/T", "/F"]);
+      } else {
+        old.kill();
+      }
+    } catch (e) {}
+    await Promise.race([gone, new Promise((r) => setTimeout(r, 3000))]);
+  }
+  spawnBackend(backendPort);
+  return waitForBackend(backendPort);
+}
+
+function watchBackend() {
+  const root = path.join(__dirname, "..");
+  const skip = /(^|[\\/])(node_modules|release|build|dist|__pycache__|venv|\.venv|\.git)([\\/]|$)/;
+  let timer = null, busy = false, again = false;
+
+  const run = async () => {
+    if (busy) { again = true; return; }
+    busy = true;
+    console.log("[dev] Python changed, restarting backend...");
+    const ok = await restartBackend();
+    if (ok && appView && !appView.webContents.isDestroyed()) {
+      appView.webContents.reloadIgnoringCache();
+    }
+    busy = false;
+    if (again) { again = false; run(); }
+  };
+
+  try {
+    fs.watch(root, { recursive: true }, (evt, file) => {
+      if (!file || !file.endsWith(".py") || skip.test(file)) return;
+      clearTimeout(timer);
+      timer = setTimeout(run, 300);
+    });
+  } catch (e) {
+    console.warn("[dev] backend watcher unavailable:", e.message);
   }
 }
 
@@ -93,30 +167,18 @@ async function start() {
 
   loadingView.webContents.loadFile(path.join(__dirname, "loading.html"));
 
-  const port = await freePort();
-  const c = backendCommand(port);
-  backend = spawn(c.cmd, c.args, {
-    cwd: c.cwd,
-    windowsHide: true,
-    stdio: app.isPackaged ? "ignore" : "inherit",
-  });
-  backend.on("exit", () => {
-    const wasRunning = backend !== null;
-    backend = null;
-    if (wasRunning && !quitting) {
-      dialog.showErrorBox("Cosmoscape", "The backend stopped unexpectedly.");
-      app.quit();
-    }
-  });
+  backendPort = await freePort();
+  spawnBackend(backendPort);
 
-  const ok = await waitForBackend(port);
+    const ok = await waitForBackend(backendPort);
   if (!ok) {
     dialog.showErrorBox("Cosmoscape", "The backend did not start.");
     app.quit();
     return;
   }
+  if (!app.isPackaged) watchBackend();
 
-  const base = "http://127.0.0.1:" + port;
+  const base = "http://127.0.0.1:" + backendPort;
   appView.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
