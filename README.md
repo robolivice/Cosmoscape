@@ -4,13 +4,14 @@
 
 **Fly from the Milky Way down to a single star system, right in your browser or as a desktop app.**
 
+<img src="docs/screen.png" alt="Main Startup Screen" width="800">
+<p style="margin-bottom: 30px;">Main Startup Screen</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![three.js](https://img.shields.io/badge/three.js-r147-black.svg)](https://threejs.org/)
 [![Electron](https://img.shields.io/badge/Electron-desktop-47848f.svg)](https://www.electronjs.org/)
 [![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
-
-<img src="docs/screen.png" alt="Main Startup Screen" width="800">
 
 [Quick start](#quick-start-web-version) · [Desktop app](#desktop-app-electron) · [Importing data](#importing-data) · [Controls](#controls) · [Credits](CREDITS.md)
 
