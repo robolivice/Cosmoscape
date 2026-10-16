@@ -10,7 +10,7 @@
 [![Electron](https://img.shields.io/badge/Electron-desktop-47848f.svg)](https://www.electronjs.org/)
 [![GitHub stars](https://img.shields.io/github/stars/robolivice/cosmoscape?style=flat)](https://github.com/robolivice/cosmoscape/stargazers)
 
-<img src="docs/demo.gif" alt="Cosmoscape demo" width="800">
+<img src="docs/screen.png" alt="Main Startup Screen" width="800">
 
 [Quick start](#quick-start-web-version) · [Desktop app](#desktop-app-electron) · [Importing data](#importing-data) · [Controls](#controls) · [Credits](CREDITS.md)
 
@@ -39,6 +39,10 @@ python main.py
 ```
 
 Open http://127.0.0.1:8000
+
+The browser version loads three.js, marked and the Space Mono font from public CDNs
+(jsDelivr and Google Fonts), so it needs an internet connection. The desktop app bundles
+them and does not.
 
 Run `python ingest.py --all` **before the first launch**. Without it you only get about
 35 hand-picked stars and landmarks, and the other galaxies have no stars at all.
@@ -131,7 +135,9 @@ Re-running is safe; duplicates between catalogs are detected by sky position.
 
 ## Controls
 
-- Click a galaxy to fly into it. Click a star to enter its system.
+- The map opens on a wide view of the galaxies.
+- Click a galaxy to fly into it. The camera flies in along your current view, then
+  settles close enough for the star markers to appear. Click a star to enter its system.
 - Search box: find a star by name or alias (Milky Way only).
 - Left-drag orbits, right-drag pans, scroll zooms, arrow keys pan.
 - "Show All Star Names" and "True Scale (Alpha Centauri)" toggles in the panel.
@@ -156,7 +162,7 @@ Inside each folder:
 
 - `main.py`: FastAPI backend
 - `ingest.py`: catalog loader and database helpers
-- `frontend/`: page, styles, scripts, fonts, vendored libraries, textures
+- `frontend/`: page, styles, scripts, textures (the desktop copy also bundles fonts and libraries)
 - `electron/`: desktop shell (`main.js`, `loading.html`), `Cosmoscape-win/` only
 - `build_backend.py`: bundles the backend with PyInstaller, `Cosmoscape-win/` only
 - `package_db.py`: compresses a database for hosting

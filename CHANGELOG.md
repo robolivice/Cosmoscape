@@ -5,6 +5,31 @@ All notable changes to Cosmoscape are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-10-17
+
+### Added
+- Web: a loading screen (orbit animation, starfield, COSMOSCAPE title and status text)
+  that fades out once the galaxy list and textures have loaded, with a 30 second fallback.
+- Web: Favicon (previously didnt exist)
+
+### Changed
+- The map now opens on a wider starting view: camera at (-4180, 4448, 2963) looking at
+  the origin, with the field of view set to 60 (`initEngine()` in `scripts.js`).
+- Camera FOV fixes when entering the system.
+- Entering a galaxy now flies straight in along your current line of sight instead of
+  swinging round to a fixed angle on arrival. This matches how leaving a galaxy works.
+- After the Milky Way's stars finish loading, the camera zooms in a little further on its
+  own (`GALAXY_SETTLE_R` 2500, `GALAXY_SETTLE_MS` 2250), so the yellow star markers are
+  visible straight away.
+- Web: The page title is now "Cosmoscape".
+- Static files are served with Cache-Control: no-cache, so updates show without a hard refresh.
+
+### Fixed
+- Desktop: fixed a crash in the packaged app ("TypeError: Cannot read properties of null
+  (reading 'setBounds')") when the window was resized after the loading screen had
+  finished. The `fit` resize handler in `electron/main.js` no longer uses the loading
+  view once it has been removed.
+
 ## [1.0.0] - 2026-10-16
 
 First release.
@@ -48,4 +73,5 @@ First release.
 - If you add a Content Security Policy, `script-src` needs `'wasm-unsafe-eval'` and
   `'unsafe-inline'`, and `worker-src` needs `blob:`.
 
+[1.0.1]: https://github.com/robolivice/cosmoscape/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/robolivice/cosmoscape/releases/tag/v1.0.0
