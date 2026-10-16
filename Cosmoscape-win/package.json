@@ -1,6 +1,6 @@
 {
   "name": "cosmoscape",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "3D star map from the Milky Way down to a single star system",
   "author": "robolivice",
   "main": "electron/main.js",
