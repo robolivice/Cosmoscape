@@ -879,3 +879,104 @@ canvas {
     display: block;
     z-index: 0;
 }
+#loader {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    transition: opacity .7s ease;
+    color: #00f3ff;
+    font-family: "Space Mono", Consolas, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    background:
+        radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+        radial-gradient(1px 1px at 70% 20%, #fff6, transparent),
+        radial-gradient(1.5px 1.5px at 40% 80%, #fff7, transparent),
+        radial-gradient(1px 1px at 85% 65%, #fff6, transparent),
+        radial-gradient(1px 1px at 10% 75%, #fff5, transparent),
+        radial-gradient(ellipse at center, #07131f 0%, #000 70%);
+}
+
+#loader.out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#loader .ld-orbit {
+    position: relative;
+    width: 96px;
+    height: 96px;
+}
+
+#loader .ld-orbit::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid #00f3ff33;
+    border-radius: 50%;
+}
+
+#loader .ld-star {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px;
+    border-radius: 50%;
+    background: #ffd27a;
+    box-shadow: 0 0 18px 4px #ffb84d88;
+}
+
+#loader .ld-planet {
+    position: absolute;
+    inset: 0;
+    animation: ld-spin 2.4s linear infinite;
+}
+
+#loader .ld-planet::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: #00f3ff;
+    box-shadow: 0 0 12px #00f3ff;
+}
+
+#loader h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.35em;
+    text-indent: 0.35em;
+}
+
+#loader .ld-msg {
+    font-size: 13px;
+    color: #7fdfe6;
+    letter-spacing: 0.1em;
+    min-height: 1.2em;
+}
+
+#loader .ld-dots::after {
+    content: "";
+    animation: ld-dots 1.4s steps(4) infinite;
+}
+
+@keyframes ld-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes ld-dots {
+    0% { content: ""; }
+    25% { content: "."; }
+    50% { content: ".."; }
+    75% { content: "..."; }
+}

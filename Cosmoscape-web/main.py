@@ -26,6 +26,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+from fastapi import Request
+
+@app.middleware("http")
+async def no_cache(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.startswith("/static"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,7 +91,7 @@ def get_galaxies():
 MW_Z_SQUASH = 0.15
 MW_REAL_COVERAGE_LY = 10000.0
 @app.get("/galaxy/{name}/stars")
-def get_galaxy_stars(name: str, limit: int = 40000):
+def get_galaxy_stars(name: str, limit: int = 40001):
     info = ingest.GALAXY_INFO.get(name)
     if not info:
         raise HTTPException(status_code=404, detail="Unknown galaxy")

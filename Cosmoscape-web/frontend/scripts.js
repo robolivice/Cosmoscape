@@ -6,6 +6,28 @@ let isFlying = false;
 let inTransit = false;
 let currentStar = null;
 let currentMarkdown = "";
+let loaderDone = false;
+let texPending = 0;
+function dismissLoader() {
+    if (loaderDone) return;
+    loaderDone = true;
+    const wait = Math.max(1000 - performance.now(), 0);
+    setTimeout(() => {
+        const el = document.getElementById('loader');
+        if (!el) return;
+        el.classList.add('out');
+        setTimeout(() => { el.style.display = 'none'; }, 750);
+    }, wait);
+}
+function hideLoader() {
+    if (loaderDone) return;
+    if (texPending > 0 || THREE.DefaultLoadingManager.isLoading) {
+        setTimeout(hideLoader, 100);
+        return;
+    }
+    dismissLoader();
+}
+setTimeout(dismissLoader, 30000);
 const clock = new THREE.Clock();
 const textureLoader = new THREE.TextureLoader();
 
@@ -17,12 +39,17 @@ const ktx2Loader = new THREE.KTX2Loader()
 function loadTex(url) {
     if (!url.endsWith('.ktx2')) return textureLoader.load(url);
     const tex = new THREE.CompressedTexture();
+    texPending++;
     ktx2Loader.load(url, loaded => {
         tex.copy(loaded);
         tex.encoding = THREE.LinearEncoding;   // keeps the same look as your old jpg/png textures
         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
         tex.needsUpdate = true;
-    }, undefined, err => console.error('KTX2 failed:', url, err));
+        texPending--;
+    }, undefined, err => {
+        console.error('KTX2 failed:', url, err);
+        texPending--;
+    });
     return tex;
 }
 
@@ -296,13 +323,20 @@ function createGalaxyMesh(g) {
     return pivot;
 }
 
+function setLoaderMsg(text) {
+    const m = document.querySelector('#loader .ld-msg');
+    if (m && m.firstChild) m.firstChild.textContent = text;
+}
+
 async function loadGalaxies() {
     galaxyMeshes.forEach(p => scene.remove(p));
     galaxyMeshes = [];
     galaxyHits = [];
+    setLoaderMsg('Verifying Data Systems');
     try {
         const res = await fetch('/galaxies/');
         galaxyList = await res.json();
+        setLoaderMsg('Loading textures');
         galaxyList.forEach(g => {
             document.getElementById('status').innerText = "SYS STATUS: ONLINE // CLICK A GALAXY TO ENTER";
             const pivot = createGalaxyMesh(g);
@@ -312,6 +346,9 @@ async function loadGalaxies() {
         });
     } catch (e) {
         console.error('galaxy load failed', e);
+        document.getElementById('status').innerText = "Galaxy load failed.";
+    } finally {
+        hideLoader();
     }
 }
 
@@ -371,7 +408,7 @@ function clearModels() {
 const DOT_RADIUS = 500;
 function updateModels(now) {
     const cg = currentGalaxy;
-    if (!cg || !cg.isMW || activeSystem || now - lastStream < 250) return;
+    if (!cg || !cg.isMW || activeSystem || cg.exit || now - lastStream < 250) return;
     lastStream = now;
     const camDist = camera.position.distanceTo(controls.target);
     const wantModels = false;
@@ -437,45 +474,81 @@ function updateModels(now) {
 const MESH_FADE_NEAR = 150, MESH_FADE_FAR = 700;
 function updateMeshFade() {
     const cg = currentGalaxy;
-    if (!cg || !cg.isMW) return;
+    if (!cg) return;
+    let ex = 1;
+    if (cg.exit) {
+        const k = Math.min((performance.now() - cg.exit.t0) / cg.exit.ms, 1);
+        ex = 1 - k * k * (3 - 2 * k);
+        galaxyMeshes.forEach(p => {
+            if (p !== cg.pivot) p.userData.mesh.material.opacity = p.userData.baseOpacity * (1 - ex);
+        });
+    }
+    const en = cg.enterK === undefined ? 1 : cg.enterK;
+    if (!cg.isMW) {
+        cg.points.material.opacity = ex * en;
+        cg.points.visible = ex * en > 0.01;
+        return;
+    }
     const d = camera.position.distanceTo(controls.target);
     const f = THREE.MathUtils.smoothstep(d, MESH_FADE_NEAR, MESH_FADE_FAR);
+    const fm = Math.max(f, 1 - ex);
     const u = cg.pivot.userData;
-    u.mesh.material.opacity = u.baseOpacity * f;
-    u.layers.forEach(l => l.visible = f > 0.01);
-    cg.points.material.opacity = (1 - f) * galaxyFade;
-    cg.points.visible = f < 0.99 && galaxyFade > 0.01;
+    u.mesh.material.opacity = u.baseOpacity * fm;
+    u.layers.forEach(l => l.visible = fm > 0.01);
+    cg.points.material.opacity = (1 - fm) * galaxyFade * ex * en;
+    cg.points.visible = fm < 0.99 && galaxyFade > 0.01 && ex * en > 0.01;
 }
 
 const hide = document.getElementById('back-btn');
 const show = document.getElementById('main-btn');
 async function enterGalaxy(pivot) {
     const g = pivot.userData.info;
-    isFlying = true;
+    isFlying = true; inTransit = true;
     document.getElementById('info-panel').style.display = 'none';
     document.getElementById('status').innerText = `HYPERDRIVE ENGAGED → ${g.name}`;
     homeView = { pos: camera.position.clone(), target: controls.target.clone() };
-    const view = new THREE.Vector3(0, 1, 0.7).applyQuaternion(pivot.quaternion);
-    await (g.name === 'Milky_Way' ? flyTo(new THREE.Object3D(), 1500, view) : flyTo(pivot, g.display * 0.9, view));
+    const aim = g.name === 'Milky_Way' ? new THREE.Object3D() : pivot;
+    const view = camera.position.clone().sub(aim.getWorldPosition(new THREE.Vector3())).normalize();
+    const fitR = (g.display / 2) / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(1, camera.aspect));
+    const arriveR = fitR * GALAXY_ARRIVE_MULT;
+    controls.maxDistance = Math.max(controls.maxDistance, arriveR * 1.05);
+    camera.far = Math.max(camera.far, arriveR + g.display);
+    camera.updateProjectionMatrix();
+
+    const starsReq = fetch(`/galaxy/${encodeURIComponent(g.name)}/stars`).then(r => r.json()).catch(() => null);
+    const others = galaxyMeshes.filter(p => p !== pivot);
+    runFade(GALAXY_ENTER_MS, k => others.forEach(p => { p.userData.mesh.material.opacity = p.userData.baseOpacity * (1 - k); }));
+
+    await flyTo(aim, arriveR, view, GALAXY_ENTER_MS, true);
+    others.forEach(p => { p.visible = false; p.userData.mesh.material.opacity = p.userData.baseOpacity; });
     document.getElementById('status').innerText = `LOADING ${g.name}...`;
     try {
-        const res = await fetch(`/galaxy/${encodeURIComponent(g.name)}/stars`);
-        const stars = (await res.json()).filter(s => !MERGED.has(s.name));
+        const raw = await starsReq;
+        if (!raw) throw new Error('stars fetch failed');
+        const stars = raw.filter(s => !MERGED.has(s.name));
         const points = buildGalaxyCloud(pivot, stars);
-        currentGalaxy = { pivot, points, names: stars.map(s => s.name), stars, models: new Map(), skip: new Set(), isMW: g.name === 'Milky_Way' };
+        currentGalaxy = { pivot, points, names: stars.map(s => s.name), stars, models: new Map(), skip: new Set(), isMW: g.name === 'Milky_Way', enterK: 0 };
         buildLabels(stars);
         if (g.name === 'Milky_Way') {
             try { planetMap = await (await fetch('/planets/')).json(); } catch (e) { planetMap = {}; }
         }
-        galaxyMeshes.forEach(p => { if (p !== pivot) p.visible = false; });
         hide.classList.remove('hide');
-        show.classList.add('hide')
+        show.classList.add('hide');
         document.getElementById('back-btn').style.display = 'inline-block';
         document.getElementById('status').innerText = `${g.name}: ${stars.length} STARS`;
+        await runFade(GALAXY_FADE_IN_MS, k => { if (currentGalaxy) currentGalaxy.enterK = k; });
+        if (currentGalaxy) currentGalaxy.enterK = undefined;
+        if (g.name === 'Milky_Way' && camera.position.distanceTo(controls.target) > GALAXY_SETTLE_R) {
+            const settleDir = camera.position.clone().sub(controls.target).normalize();
+            inTransit = false;
+            await flyTo(new THREE.Object3D(), GALAXY_SETTLE_R, settleDir, GALAXY_SETTLE_MS, true);
+        }
     } catch (e) {
         console.error('enterGalaxy failed:', e);
+        others.forEach(p => { p.visible = true; });
         document.getElementById('status').innerText = "Galaxy load failed.";
     }
+    inTransit = false;
     isFlying = false;
 }
 
@@ -483,27 +556,41 @@ async function exitGalaxy() {
     pinned = null;
     if (!currentGalaxy || isFlying) return;
     if (activeSystem) { exitSystem(); return; }
-    const { pivot, points } = currentGalaxy;
-    clearModels();
-    pivot.remove(points);
-    points.geometry.dispose();
-    points.material.dispose();
-    pivot.userData.mesh.material.opacity = pivot.userData.baseOpacity;
-    pivot.userData.layers.forEach(l => l.visible = true);
-    currentGalaxy = null;
-    clickableStars.forEach(s => scene.remove(s));
-    clickableStars = []; hitTargets = [];
-    galaxyMeshes.forEach(p => p.visible = true);
+    const cg = currentGalaxy;
+    const { pivot, points } = cg;
+    isFlying = true; inTransit = true;
+    document.getElementById('info-panel').style.display = 'none';
+    document.getElementById('status').innerText = 'HYPERDRIVE ENGAGED → galaxy view';
     show.classList.remove('hide');
     document.getElementById('back-btn').style.display = 'none';
-    document.getElementById('info-panel').style.display = 'none';
+    galaxyMeshes.forEach(p => {
+        if (p !== pivot) { p.userData.mesh.material.opacity = 0; p.visible = true; }
+    });
+    cg.exit = { t0: performance.now(), ms: GALAXY_EXIT_MS };
 
-    const home = new THREE.Object3D();
-    home.position.copy(homeView.target);
-    home.userData.name = 'home';
-    isFlying = true;
-    await flyTo(home, homeView.pos.distanceTo(homeView.target));
-    isFlying = false;
+    const here = new THREE.Object3D();
+    here.position.copy(controls.target);
+    const outDir = camera.position.clone().sub(controls.target).normalize();
+    const g = pivot.userData.info;
+    const fitR = (g.display / 2) / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(1, camera.aspect));
+    const outDist = Math.max(fitR * GALAXY_EXIT_MULT, camera.position.distanceTo(controls.target));
+    controls.maxDistance = Math.max(controls.maxDistance, outDist * 1.05);
+    camera.far = Math.max(camera.far, outDist + g.display);
+    camera.updateProjectionMatrix();
+    try {
+        await flyTo(here, outDist, outDir, GALAXY_EXIT_MS, true);
+    } finally {
+        clearModels();
+        pivot.remove(points);
+        points.geometry.dispose();
+        points.material.dispose();
+        pivot.userData.layers.forEach(l => l.visible = true);
+        galaxyMeshes.forEach(p => { p.userData.mesh.material.opacity = p.userData.baseOpacity; });
+        currentGalaxy = null;
+        clickableStars.forEach(s => scene.remove(s));
+        clickableStars = []; hitTargets = [];
+        inTransit = false; isFlying = false;
+    }
     document.getElementById('status').innerText = 'Back at galaxy view.';
 }
 
@@ -576,7 +663,8 @@ function initEngine() {
     controls.minDistance = 1;
     if (controls.listenToKeyEvents) controls.listenToKeyEvents(window);
     controls.keyPanSpeed = 30;
-    camera.position.set(0, 40, 120);
+    camera.position.set(-4180, 4448, 2963);
+    controls.target.set(0, 0, 0);
     controls.update();
 
     raycaster = new THREE.Raycaster();
@@ -717,7 +805,7 @@ async function enterSystem(name) {
         const h = new THREE.Vector3(camera.position.x - marker.position.x, 0, camera.position.z - marker.position.z);
         if (h.lengthSq() < 1e-10) h.set(0, 0, 1);
         const dirv = h.normalize().setY(0.47).normalize();
-        await flyTo(marker, rEnd, dirv, dist < ARRIVE_R * 120 ? 2600 : undefined);
+        await flyTo(marker, rEnd, dirv, dist < ARRIVE_R * 120 ? SYSTEM_ENTER_MS : undefined);
 
         const rel = camera.position.clone().sub(marker.position).divideScalar(s);
         endZoomFx();
@@ -772,7 +860,7 @@ async function exitSystem() {
         const out = Math.min(Math.max(saved.pos.distanceTo(saved.starPos), rEnd * 36), 8500);
         const marker = new THREE.Object3D();
         marker.position.copy(starPos);
-        await flyTo(marker, out, relCam.clone().normalize(), 2600);
+        await flyTo(marker, out, relCam.clone().normalize(), 2300);
 
         scene.remove(group);
         group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
@@ -789,6 +877,7 @@ async function exitSystem() {
     }
 }
 
+let importing = false;
 async function syncData() {
     if (currentGalaxy) { document.getElementById('status').innerText = 'Go back to the galaxy view first.'; return; }
     document.getElementById('status').innerText = "Syncing local databanks...";
@@ -800,6 +889,7 @@ async function syncData() {
         document.getElementById('status').innerText = "Server communication anomaly.";
     }
 }
+
 function hashName(s) {
     let h = 0;
     for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -964,11 +1054,36 @@ function createStarSystem(star, lite) {
     return group;
 }
 
-function flyTo(target, distance, dirOverride, duration) {
+const FLY_SLOWDOWN = 1.0;
+const FLY_SHORT = 1.4;
+const GALAXY_ARRIVE_MULT = 0.8;
+const GALAXY_EXIT_MULT = 1.3;
+const GALAXY_ENTER_MS = 2000;
+const GALAXY_EXIT_MS = 3500;
+const GALAXY_FADE_IN_MS = 1200;
+const GALAXY_SETTLE_R = 2500;
+const GALAXY_SETTLE_MS = 2250;
+function runFade(ms, fn) {
+    return new Promise(res => {
+        const t0 = performance.now();
+        (function f() {
+            const k = Math.min((performance.now() - t0) / ms, 1);
+            fn(k * k * (3 - 2 * k));
+            k < 1 ? requestAnimationFrame(f) : res();
+        })();
+    });
+}
+const FLY_TURN_MS = 1600;
+const FLY_TRAVEL_MULT = 1.8;
+const SYSTEM_ENTER_MS = 3000;
+const FLY_TURN_MIN_MS = 1000;
+function flyTo(target, distance, dirOverride, duration, straight) {
     return new Promise(resolve => {
         const startPos = camera.position.clone();
         const startTarget = controls.target.clone();
         const endTarget = target.getWorldPosition(new THREE.Vector3());
+        const virtualTarget = new THREE.Vector3();
+        const lookTarget = new THREE.Vector3();
         const d0 = startPos.clone().sub(startTarget);
         const r0 = Math.max(d0.length(), 1e-6);
         d0.normalize();
@@ -976,7 +1091,12 @@ function flyTo(target, distance, dirOverride, duration) {
         const r1 = Math.max(distance || (target.userData.name === 'Sol' ? 30 : 16), 1e-6);
         const endPos = endTarget.clone().addScaledVector(d1, r1);
         const travel = startPos.distanceTo(endPos);
-        const dur = duration || Math.min(Math.max(700 + 700 * Math.log10(1 + travel), 800), 4200);
+        const longTrip = Math.min(Math.max((Math.log10(1 + travel) - 1) / 1.4, 0), 1);
+        const auto = Math.min(Math.max(700 + 700 * Math.log10(1 + travel), 800), 4200) * (FLY_SHORT + (FLY_SLOWDOWN - FLY_SHORT) * longTrip);
+        const turn = startTarget.clone().sub(startPos).normalize().angleTo(endTarget.clone().sub(startPos).normalize());
+        const turnDur = straight ? 0 : turn * FLY_TURN_MS + FLY_TURN_MIN_MS * Math.min(turn / 0.15, 1);
+        const travelDur = duration || auto * FLY_TRAVEL_MULT;
+        const dur = turnDur + travelDur;
         const qFull = new THREE.Quaternion().setFromUnitVectors(d0, d1);
         const q = new THREE.Quaternion();
         const dir = new THREE.Vector3();
@@ -985,18 +1105,55 @@ function flyTo(target, distance, dirOverride, duration) {
         const t0 = performance.now();
         controls.enabled = false;
         controls.minDistance = 0;
+        const dS = startPos.clone().sub(endTarget);
+        const rS = Math.max(dS.length(), 1e-6);
+        dS.normalize();
+        const qS = new THREE.Quaternion().setFromUnitVectors(dS, d1);
+        const qStep = new THREE.Quaternion();
+        const dirNow = new THREE.Vector3();
+        const lookDir0 = startTarget.clone().sub(startPos);
+        const lookDist0 = lookDir0.length();
+        lookDir0.normalize();
+        const lookDir1 = endTarget.clone().sub(startPos);
+        const lookDist1 = lookDir1.length();
+        lookDir1.normalize();
+        const qLook = new THREE.Quaternion().setFromUnitVectors(lookDir0, lookDir1);
+        const qLookStep = new THREE.Quaternion();
+        const lookNow = new THREE.Vector3();
 
         function step(now) {
-            const k = Math.min(Math.max((now - t0) / dur, 0), 1);
-            const e = k * k * k * (k * (k * 6 - 15) + 10);
-            controls.target.lerpVectors(startTarget, endTarget, e);
-            q.set(0, 0, 0, 1).slerp(qFull, e);
-            dir.copy(d0).applyQuaternion(q);
-            const r = r0 * Math.pow(r1 / r0, e);
-            camera.position.copy(controls.target).addScaledVector(dir, r);
-            camera.fov = startFov + 12 * Math.sin(Math.PI * k);
-            camera.updateProjectionMatrix();
-            if (k < 1) {
+            const tt = now - t0;
+            const kAll = Math.min(Math.max(tt / dur, 0), 1);
+            if (straight) {
+                const k = Math.min(tt / dur, 1);
+                const e = k * k * k * (k * (k * 6 - 15) + 10);
+                camera.position.lerpVectors(startPos, endPos, e);
+                lookTarget.lerpVectors(startTarget, endTarget, e);
+                controls.target.copy(lookTarget);
+                camera.lookAt(lookTarget);
+            } else if (tt < turnDur) {
+                const a = tt / turnDur;
+                const eA = a * a * a * (a * (a * 6 - 15) + 10);
+                qLookStep.identity().slerp(qLook, eA);
+                lookNow.copy(lookDir0).applyQuaternion(qLookStep);
+                lookTarget.copy(startPos).addScaledVector(lookNow, lookDist0 + (lookDist1 - lookDist0) * eA);
+                controls.target.copy(lookTarget);
+                camera.position.copy(startPos);
+                camera.lookAt(lookTarget);
+            } else {
+                // phase 2: fly in with the star already centered
+                const k = Math.min((tt - turnDur) / travelDur, 1);
+                const e = k * k * k * (k * (k * 6 - 15) + 10);
+                controls.target.copy(endTarget);
+                qStep.identity().slerp(qS, e);
+                dirNow.copy(dS).applyQuaternion(qStep);
+                const r = rS * Math.pow(r1 / rS, e);
+                camera.position.copy(endTarget).addScaledVector(dirNow, r);
+                camera.lookAt(endTarget);
+                camera.fov = startFov + 12 * Math.sin(Math.PI * k);
+                camera.updateProjectionMatrix();
+            }
+            if (kAll < 1) {
                 requestAnimationFrame(step);
             } else {
                 camera.position.copy(endPos);

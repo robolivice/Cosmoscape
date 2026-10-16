@@ -4,18 +4,27 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" href="static\textures\icon.png" sizes="any">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-	<title>Universe Map</title>
+	<title>Cosmoscape</title>
 	<link rel="stylesheet" href="static/styles.css">
 </head>
 
 <body>
-	<button onclick="syncData()" class="xbutton" id="main-btn">Sync Real Data</button>
+	<div id="loader">
+		<div class="ld-orbit">
+			<div class="ld-star"></div>
+			<div class="ld-planet"></div>
+		</div>
+		<h1>COSMOSCAPE</h1>
+		<div class="ld-msg">Starting systems<span class="ld-dots"></span></div>
+	</div>
+	<button onclick="syncData()" class="xbutton" id="main-btn">Sync Data</button>
 	<div id="ui">
-		<h2>Universe Navigator</h2>
-		<div id="status">Verifying data systems...</div>
+		<h2>Navigator</h2>
+		<div id="status">Verifying Data Systems...</div>
 		<div class="galaxy"></div>
 		<div id="search-container">
 			<div class="nebula"></div>
