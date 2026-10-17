@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web: a loading screen (orbit animation, starfield, COSMOSCAPE title and status text)
   that fades out once the galaxy list and textures have loaded, with a 30 second fallback.
 - Web: Favicon (previously didnt exist)
+- Unified Frontend
 
 ### Changed
 - The map now opens on a wider starting view: camera at (-4180, 4448, 2963) looking at
@@ -21,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After the Milky Way's stars finish loading, the camera zooms in a little further on its
   own (`GALAXY_SETTLE_R` 2500, `GALAXY_SETTLE_MS` 2250), so the yellow star markers are
   visible straight away.
-- Web: The page title is now "Cosmoscape".
-- Static files are served with Cache-Control: no-cache, so updates show without a hard refresh.
+- Unified UI (frontend) for both the Desktop and the Web version.
+- Web: static files are served with Cache-Control: no-cache, so updates show without a hard refresh.
 
 ### Fixed
 - Desktop: fixed a crash in the packaged app ("TypeError: Cannot read properties of null
