@@ -41,9 +41,8 @@ python main.py
 
 Open http://127.0.0.1:8000
 
-The browser version loads three.js, marked and the Space Mono font from public CDNs
-(jsDelivr and Google Fonts), so it needs an internet connection. The desktop app bundles
-them and does not.
+three.js, marked and the Space Mono font are bundled in `frontend/vendor` and
+`frontend/fonts`, so no internet connection is needed to run the viewer.
 
 Run `python ingest.py --all` **before the first launch**. Without it you only get about
 35 hand-picked stars and landmarks, and the other galaxies have no stars at all.
@@ -154,16 +153,16 @@ project's license; see `CREDITS.md`.
 
 ## Project layout
 
-The repository has two folders with the same features:
+The repository has a shared `frontend/` folder (page, styles, scripts, textures, fonts and
+bundled libraries) and two app folders with the same features:
 
 - `Cosmoscape-web/`: the browser version (run with `python main.py`)
 - `Cosmoscape-win/`: the Electron desktop version and installer build
 
-Inside each folder:
+Inside each app folder:
 
 - `main.py`: FastAPI backend
 - `ingest.py`: catalog loader and database helpers
-- `frontend/`: page, styles, scripts, textures (the desktop copy also bundles fonts and libraries)
 - `electron/`: desktop shell (`main.js`, `loading.html`), `Cosmoscape-win/` only
 - `build_backend.py`: bundles the backend with PyInstaller, `Cosmoscape-win/` only
 - `package_db.py`: compresses a database for hosting
