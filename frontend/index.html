@@ -3,16 +3,26 @@
 
 <head>
 	<meta charset="UTF-8">
+	<script>if (location.search.includes('desktop')) document.documentElement.classList.add('desktop');</script>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" href="static\textures\icon.png" sizes="any">
 	<title>Cosmoscape</title>
 	<link rel="stylesheet" href="static/styles.css">
 </head>
 
 <body>
+	<div id="loader">
+		<div class="ld-orbit">
+			<div class="ld-star"></div>
+			<div class="ld-planet"></div>
+		</div>
+		<h1>COSMOSCAPE</h1>
+		<div class="ld-msg">Starting Systems<span class="ld-dots"></span></div>
+	</div>
 	<button onclick="syncData()" class="xbutton" id="main-btn" style="display:none !important">Import Database</button>
 	<div id="ui">
 		<h2>Navigator</h2>
-		<div id="status">Verifying data systems...</div>
+		<div id="status">Verifying Data Systems...</div>
 		<div class="galaxy"></div>
 		<div id="search-container">
 			<div class="nebula"></div>

@@ -6,6 +6,28 @@ let isFlying = false;
 let inTransit = false;
 let currentStar = null;
 let currentMarkdown = "";
+let loaderDone = false;
+let texPending = 0;
+function dismissLoader() {
+    if (loaderDone) return;
+    loaderDone = true;
+    const wait = Math.max(1000 - performance.now(), 0);
+    setTimeout(() => {
+        const el = document.getElementById('loader');
+        if (!el) return;
+        el.classList.add('out');
+        setTimeout(() => { el.style.display = 'none'; }, 750);
+    }, wait);
+}
+function hideLoader() {
+    if (loaderDone) return;
+    if (texPending > 0 || THREE.DefaultLoadingManager.isLoading) {
+        setTimeout(hideLoader, 100);
+        return;
+    }
+    dismissLoader();
+}
+setTimeout(dismissLoader, 30000);
 const clock = new THREE.Clock();
 const textureLoader = new THREE.TextureLoader();
 renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -15,12 +37,17 @@ const ktx2Loader = new THREE.KTX2Loader()
 function loadTex(url) {
     if (!url.endsWith('.ktx2')) return textureLoader.load(url);
     const tex = new THREE.CompressedTexture();
+    texPending++;
     ktx2Loader.load(url, loaded => {
         tex.copy(loaded);
         tex.encoding = THREE.LinearEncoding;
         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
         tex.needsUpdate = true;
-    }, undefined, err => console.error('KTX2 failed:', url, err));
+        texPending--;
+    }, undefined, err => {
+        console.error('KTX2 failed:', url, err);
+        texPending--;
+    });
     return tex;
 }
 const dayTexture = loadTex('/static/textures/earth_day.ktx2');
@@ -293,13 +320,20 @@ function createGalaxyMesh(g) {
     return pivot;
 }
 
+function setLoaderMsg(text) {
+    const m = document.querySelector('#loader .ld-msg');
+    if (m && m.firstChild) m.firstChild.textContent = text;
+}
+
 async function loadGalaxies() {
     galaxyMeshes.forEach(p => scene.remove(p));
     galaxyMeshes = [];
     galaxyHits = [];
+    setLoaderMsg('Verifying data systems');
     try {
         const res = await fetch('/galaxies/');
         galaxyList = await res.json();
+        setLoaderMsg('Loading textures');
         galaxyList.forEach(g => {
             document.getElementById('status').innerText = "SYS STATUS: ONLINE // CLICK A GALAXY TO ENTER";
             const pivot = createGalaxyMesh(g);
@@ -310,11 +344,14 @@ async function loadGalaxies() {
         try {
             const st = await (await fetch('/api/status')).json();
             if (st.stars < 1000) {
-                document.getElementById('status').innerText = 'Starter data only. Press Import Database for the full catalog.';
+                document.getElementById('status').innerText = 'Starter data only. Run ingest.py --all for the full catalog.';
             }
         } catch (e) { }
     } catch (e) {
         console.error('galaxy load failed', e);
+        document.getElementById('status').innerText = 'Galaxy load failed.';
+    } finally {
+        hideLoader();
     }
 }
 
