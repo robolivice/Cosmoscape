@@ -179,6 +179,16 @@ async function start() {
   if (!app.isPackaged) watchBackend();
 
   const base = "http://127.0.0.1:" + backendPort;
+  if (app.isPackaged) {
+    win.removeMenu();   // removes the default View > Reload menu (Windows/Linux)
+    appView.webContents.on("before-input-event", (e, input) => {
+      const k = input.key.toLowerCase();
+      const ctrl = input.control || input.meta;
+      if (input.type === "keyDown" && (k === "f5" || (ctrl && k === "r"))) {
+        e.preventDefault();   // blocks F5, Ctrl+R and Ctrl+Shift+R (Cmd+R on macOS)
+      }
+    });
+  }
   appView.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -189,7 +199,7 @@ async function start() {
       shell.openExternal(url);
     }
   });
-  appView.webContents.loadURL(base);
+  appView.webContents.loadURL(base + "/?desktop=1");
 
   await waitForOnline(appView.webContents);
   if (win.isDestroyed() || loadingView.webContents.isDestroyed()) return;

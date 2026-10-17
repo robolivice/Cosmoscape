@@ -6,7 +6,7 @@ sep = os.pathsep
 cmd = [
     sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir",
     "--name", "cosmoscape-backend",
-    "--add-data", "frontend" + sep + "frontend",
+    "--add-data", os.path.join("..", "frontend") + sep + "frontend",
     "--add-data", "seed" + sep + "seed",
     "--collect-submodules", "uvicorn",
 ]

@@ -327,7 +327,11 @@ def save_celestial_markdown(celestial_body: str, update: MarkdownUpdate):
         f.write(update.content)
     return {"status": "saved", "file": f"{clean_name}.md"}
 
-FRONTEND_DIR = ingest.resource_path("frontend")
+if getattr(sys, "frozen", False):
+    FRONTEND_DIR = ingest.resource_path("frontend")
+else:
+    FRONTEND_DIR = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
 
 if os.path.exists(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")

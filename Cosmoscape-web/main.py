@@ -43,13 +43,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/sync-real-data/")
-def sync_data():
+@app.get("/api/status")
+def api_status():
     conn = ingest.connect()
-    ingest.init_schema(conn)
-    added = ingest.seed_curated(conn)
-    conn.close()
-    return {"status": "success", "added": added}
+    try:
+        return {"stars": conn.execute("SELECT COUNT(*) FROM stars").fetchone()[0]}
+    finally:
+        conn.close()
 
 def to_scene(x, y, z):
     gx, gy, gz = x, z, -y
@@ -191,7 +191,7 @@ def save_celestial_markdown(celestial_body: str, update: MarkdownUpdate):
         f.write(update.content)
     return {"status": "saved", "file": f"{clean_name}.md"}
 
-FRONTEND_DIR = os.path.join(CURRENT_DIR, "frontend")
+FRONTEND_DIR = os.path.join(os.path.dirname(CURRENT_DIR), "frontend")
 if os.path.exists(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
     @app.get("/")
