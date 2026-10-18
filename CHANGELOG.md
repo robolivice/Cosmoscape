@@ -5,6 +5,21 @@ All notable changes to Cosmoscape are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-18
+
+### Added
+- Navigator panel entrance animation: a beam traces the top edge of the panel, flashes the bar
+  when it arrives, then the body rolls down.
+- Click an empty part of the Navigator panel to collapse it with the reverse animation. A
+  "Navigator" button appears at the top left to bring it back.
+- Both animations are skipped when the system's reduced-motion setting is on.
+
+### Changed
+- Desktop: the panel animation now starts after the loading screen has finished fading out.
+  `electron/main.js` adds a `ready` class to the page at that point.
+- The panel's top bar now spans the full width of the panel and is slightly taller.
+- Status text capitalised to "Verifying Data Systems".
+
 ## [1.0.1] - 2026-10-17
 
 ### Added
@@ -74,5 +89,6 @@ First release.
 - If you add a Content Security Policy, `script-src` needs `'wasm-unsafe-eval'` and
   `'unsafe-inline'`, and `worker-src` needs `blob:`.
 
+[1.1.0]: https://github.com/robolivice/cosmoscape/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/robolivice/cosmoscape/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/robolivice/cosmoscape/releases/tag/v1.0.0

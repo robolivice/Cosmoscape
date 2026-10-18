@@ -14,6 +14,7 @@ let loadingView = null;
 let appView = null;
 let quitting = false;
 let backendPort = null;
+let uiReady = false;
 
 function freePort() {
   return new Promise((resolve) => {
@@ -56,7 +57,7 @@ function spawnBackend(port) {
   });
   backend = proc;
   proc.on("exit", () => {
-    if (backend !== proc) return;   // old or killed process, ignore
+    if (backend !== proc) return;
     backend = null;
     if (!quitting) {
       dialog.showErrorBox("Cosmoscape", "The backend stopped unexpectedly.");
@@ -152,10 +153,10 @@ async function start() {
   appView = new WebContentsView({ webPreferences: { ...prefs, backgroundThrottling: false } });
   appView.setBackgroundColor("#000000");
   loadingView = new WebContentsView({ webPreferences: prefs });
-  loadingView.setBackgroundColor("#00000000");   // transparent so the page can fade
+  loadingView.setBackgroundColor("#00000000");
 
-  win.contentView.addChildView(appView);          // underneath
-  win.contentView.addChildView(loadingView);      // on top
+  win.contentView.addChildView(appView);
+  win.contentView.addChildView(loadingView);
   const fit = () => {
     const b = win.getContentBounds();
     const r = { x: 0, y: 0, width: b.width, height: b.height };
@@ -180,12 +181,12 @@ async function start() {
 
   const base = "http://127.0.0.1:" + backendPort;
   if (app.isPackaged) {
-    win.removeMenu();   // removes the default View > Reload menu (Windows/Linux)
+    win.removeMenu();
     appView.webContents.on("before-input-event", (e, input) => {
       const k = input.key.toLowerCase();
       const ctrl = input.control || input.meta;
       if (input.type === "keyDown" && (k === "f5" || (ctrl && k === "r"))) {
-        e.preventDefault();   // blocks F5, Ctrl+R and Ctrl+Shift+R (Cmd+R on macOS)
+        e.preventDefault();
       }
     });
   }
@@ -199,14 +200,19 @@ async function start() {
       shell.openExternal(url);
     }
   });
+  appView.webContents.on("dom-ready", () => {
+    if (uiReady) appView.webContents.executeJavaScript("document.documentElement.classList.add('ready')").catch(() => {});
+  });
   appView.webContents.loadURL(base + "/?desktop=1");
 
   await waitForOnline(appView.webContents);
   if (win.isDestroyed() || loadingView.webContents.isDestroyed()) return;
 
   await loadingView.webContents.executeJavaScript("document.body.classList.add('out')").catch(() => {});
-  await new Promise((r) => setTimeout(r, 750));   // let the fade finish
+  await new Promise((r) => setTimeout(r, 750));
   if (win.isDestroyed()) return;
+  uiReady = true;
+  appView.webContents.executeJavaScript("document.documentElement.classList.add('ready')").catch(() => {});
   const lv = loadingView;
   loadingView = null;
   win.contentView.removeChildView(lv);

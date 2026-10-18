@@ -329,7 +329,7 @@ async function loadGalaxies() {
     galaxyMeshes.forEach(p => scene.remove(p));
     galaxyMeshes = [];
     galaxyHits = [];
-    setLoaderMsg('Verifying data systems');
+    setLoaderMsg('Verifying Data Systems');
     try {
         const res = await fetch('/galaxies/');
         galaxyList = await res.json();
@@ -1378,3 +1378,42 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('scroll', () => window.scrollTo(0, 0));
 window.onload = () => { window.scrollTo(0, 0); initEngine(); };
+
+const uiPanel = document.getElementById('ui');
+
+const uiToggle = document.createElement('button');
+uiToggle.id = 'ui-toggle';
+uiToggle.className = 'xbutton'
+uiToggle.textContent = 'Navigator';
+document.body.appendChild(uiToggle);
+
+const uiInteractive = 'button, input, textarea, select, a, label, .checkbox-wrapper, .result, #search-container, #time-ui';
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+const finishClose = () => {
+    uiPanel.classList.add('collapsed');
+    uiToggle.classList.add('show');
+};
+
+uiPanel.addEventListener('click', (e) => {
+    if (e.target.closest(uiInteractive)) return;
+    if (uiPanel.classList.contains('closing')) return;
+    uiPanel.classList.add('closing');
+    if (reducedMotion.matches) {
+        finishClose();
+        return;
+    }
+    setTimeout(() => uiToggle.classList.add('show'), 2500);
+});
+
+uiPanel.addEventListener('animationend', (e) => {
+    if (e.target === uiPanel && e.animationName === 'uiDrawOut') finishClose();
+});
+
+uiToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!uiPanel.classList.contains('collapsed')) return;
+    uiPanel.style.setProperty('--ld', '0s');
+    uiPanel.classList.remove('closing', 'collapsed');
+    uiToggle.classList.remove('show');
+});

@@ -141,6 +141,8 @@ Re-running is safe; duplicates between catalogs are detected by sky position.
 - Search box: find a star by name or alias (Milky Way only).
 - Left-drag orbits, right-drag pans, scroll zooms, arrow keys pan.
 - "Show All Star Names" and "True Scale (Alpha Centauri)" toggles in the panel.
+- Click an empty part of the Navigator panel to collapse it. Click the "Navigator" button
+  at the top left to bring it back.
 - Time slider and pause appear inside a star system.
 - Texture alignment keys (Milky Way): `[` `]` rotate, `,` `.` scale, `m` mirror.
 - Click a star or planet name to open its notes; use Edit Records to change them.

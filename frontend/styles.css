@@ -41,12 +41,12 @@ body {
     -webkit-backdrop-filter: blur(14px) saturate(200%);
 
     clip-path: polygon(0% 0%,
-            80% 0%,
-            90% 12px,
-            100% 12px,
-            100% 85%,
-            93% 100%,
-            0% 100%);
+            min(80%, calc(var(--p) * 100%)) 0%,
+            min(90%, calc(var(--p) * 100%)) 12px,
+            calc(var(--p) * 100%) 12px,
+            calc(var(--p) * 100%) calc(20px + (85% - 20px) * var(--roll)),
+            min(93%, calc(var(--p) * 100%)) calc(20px + (100% - 20px) * var(--roll)),
+            0% calc(20px + (100% - 20px) * var(--roll)));
 
     text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
     filter:
@@ -58,8 +58,8 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    width: 75%;
-    height: 14px;
+    width: 100%;
+    height: 20px;
     background: linear-gradient(90deg, rgba(0, 243, 255, 0.5), rgba(59, 130, 246, 0.1));
     color: #060a17;
     font-size: 8px;
@@ -972,3 +972,195 @@ canvas {
     75% { content: "..."; }
 }
 .desktop #loader { display: none !important; }
+/* ---------- Navigator entrance animation ---------- */
+@property --p {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1;
+}
+
+@property --roll {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 1;
+}
+
+#ui { --ld: 0.7s; }
+.desktop #ui { --ld: 0s; }
+
+/* 1. beam draws the whole top edge (0 to 1.2s), 2. body rolls down (1.25s on) */
+#loader.out ~ #ui,
+.desktop #ui {
+    animation:
+        uiDraw 1.2s cubic-bezier(0.65, 0, 0.35, 1) var(--ld) backwards,
+        uiRoll 1.7s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--ld) + 1.25s) backwards;
+}
+
+@keyframes uiDraw {
+    from { --p: 0; }
+    to   { --p: 1; }
+}
+
+@keyframes uiRoll {
+    from { --roll: 0; }
+    to   { --roll: 1; }
+}
+
+/* comet tail + planet dot; follows the top edge, dropping down the cut corner */
+.ld-beam {
+    position: absolute;
+    left: calc(var(--p) * 100% - 90px - var(--p) * 4px);
+    top: calc(17px + 0px * clamp(0, (var(--p) - 0.8) / 0.1, 1));
+    width: 90px;
+    height: 1px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.9));
+    box-shadow: 0 0 6px rgba(0, 243, 255, 0.6);
+}
+
+.ld-beam::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 5px 1px #00f3ff, 0 0 10px 2px rgba(0, 243, 255, 0.35);
+}
+
+#loader.out ~ #ui .ld-beam,
+.desktop #ui .ld-beam {
+    animation: beamLife 1.5s linear var(--ld) backwards;
+}
+
+#loader.out ~ #ui .ld-beam::after,
+.desktop #ui .ld-beam::after {
+    animation: dotFlare 0.5s ease-out calc(var(--ld) + 1.1s);
+}
+
+/* bar flashes once when the dot arrives */
+#loader.out ~ #ui::before,
+.desktop #ui::before {
+    animation: barFlash 0.6s ease-out calc(var(--ld) + 1.15s);
+}
+
+@keyframes beamLife {
+    0%   { opacity: 0; }
+    3%   { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes dotFlare {
+    0%   { scale: 1; }
+    40%  { scale: 2.2; }
+    100% { scale: 1; }
+}
+
+@keyframes barFlash {
+    0%   { filter: brightness(1); }
+    30%  { filter: brightness(2.4); }
+    100% { filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #ui, #ui::before, .ld-beam, .ld-beam::after { animation: none !important; }
+}
+#ui.collapsed {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@keyframes uiRollOut {
+    from { --roll: 1; }
+    to   { --roll: 0; }
+}
+
+@keyframes uiDrawOut {
+    from { --p: 1; }
+    to   { --p: 0; }
+}
+
+@keyframes beamLifeOut {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    97%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes dotFlareOut {
+    0%   { scale: 1; }
+    60%  { scale: 2.2; }
+    100% { scale: 1; }
+}
+
+@keyframes barFlashOut {
+    0%   { filter: brightness(1); }
+    70%  { filter: brightness(2.4); }
+    100% { filter: brightness(1); }
+}
+
+html body #loader ~ #ui.closing {
+    animation:
+        uiRollOut 1.7s cubic-bezier(0.64, 0, 0.78, 0) 0s forwards,
+        uiDrawOut 1.2s cubic-bezier(0.65, 0, 0.35, 1) 1.75s both;
+}
+
+html body #loader ~ #ui.closing .ld-beam {
+    animation: beamLifeOut 1.5s linear 1.45s backwards;
+}
+
+html body #loader ~ #ui.closing .ld-beam::after {
+    animation: dotFlareOut 0.5s ease-in 1.35s;
+}
+
+html body #loader ~ #ui.closing::before {
+    animation: barFlashOut 0.6s ease-in 1.2s;
+}
+
+#ui-toggle {
+    top: 40px;
+    left: 40px;
+    bottom: auto;
+    z-index: 10;
+    min-width: 0;
+    padding: 6px 12px;
+    font-size: 11px;
+    line-height: normal;
+    letter-spacing: 2px;
+    opacity: 0;
+    transform: scale(0.4);
+    transform-origin: left center;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in, transform 0.25s ease-in, box-shadow 0.4s;
+}
+
+#ui-toggle.show {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    transition: opacity 0.45s ease-out, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
+    animation: toggleArrive 0.7s ease-out 0.2s;
+}
+
+@keyframes toggleArrive {
+    0%   { filter: brightness(1); }
+    35%  { filter: brightness(2); }
+    100% { filter: brightness(1); }
+}
+
+html.desktop:not(.ready) #ui,
+html.desktop:not(.ready) #ui::before,
+html.desktop:not(.ready) #ui .ld-beam,
+html.desktop:not(.ready) #ui .ld-beam::after {
+    animation: none !important;
+}
+
+html.desktop:not(.ready) #ui {
+    visibility: hidden;
+}
