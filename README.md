@@ -41,8 +41,8 @@ python main.py
 
 Open http://127.0.0.1:8000
 
-three.js, marked and the Space Mono font are bundled in `frontend/vendor` and
-`frontend/fonts`, so no internet connection is needed to run the viewer.
+three.js, marked and the Space Mono font are bundled in `Cosmoscape-FS/frontend/vendor` and
+`Cosmoscape-FS/frontend/fonts`, so no internet connection is needed to run the viewer.
 
 Run `python ingest.py --all` **before the first launch**. Without it you only get about
 35 hand-picked stars and landmarks, and the other galaxies have no stars at all.
@@ -51,10 +51,14 @@ Need only the viewer with minimal data? You can skip `--all` and run
 `python ingest.py --curated --galaxies` instead (still install
 `requirements-ingest.txt`, because `ingest.py` imports numpy).
 
+Both builds (web and desktop) use the same backend, the same frontend and the same
+database, so a catalogue you build once is used by both. The catalog loader can also
+be started from the shared folder with `cd Cosmoscape-FS && python -m cosmoscape_fs.ingest --all`.
+
 ### Where your data is stored
 
-The database (`universe.db`) and your notes (`database/*.md`) are stored in your user
-data folder, not in the repository:
+The database (`universe.db`), your notes (`database/*.md`) and the download caches
+(`data/`) are stored in your user data folder, not in the repository:
 
 | OS | Location |
 |---|---|
@@ -63,7 +67,6 @@ data folder, not in the repository:
 | Linux | `~/.local/share/Cosmoscape` |
 
 Set the `COSMOSCAPE_DATA` environment variable to use a different folder.
-Downloaded catalog caches (for example the Gaia download) stay in `./data/`.
 
 ## Desktop app (Electron)
 
@@ -106,7 +109,9 @@ The installer ends up in `release/` (NSIS on Windows, DMG on macOS, AppImage on 
 Icons are read from `build/`.
 
 `package_db.py` compresses a database into `universe.db.gz` and prints its SHA256, for
-hosting a downloadable copy. Set `DB_URL` and `DB_SHA256` in `main.py` to use it.
+hosting a downloadable copy. Set `DB_URL` and `DB_SHA256` in
+`Cosmoscape-FS/cosmoscape_fs/desktop.py` (or the `COSMOSCAPE_DB_URL` and
+`COSMOSCAPE_DB_SHA256` environment variables) to use it.
 
 ## Premade installer
 
@@ -149,27 +154,39 @@ Re-running is safe; duplicates between catalogs are detected by sky position.
 
 ## Textures
 
-The repository needs the images listed in `frontend/textures/README.md`. The planet,
+The repository needs the images listed in `Cosmoscape-FS/frontend/textures/README.md`. The planet,
 Sun and ring textures are loaded as compressed KTX2 files. They are not covered by this
 project's license; see `CREDITS.md`.
 
 ## Project layout
 
-The repository has a shared `frontend/` folder (page, styles, scripts, textures, fonts and
-bundled libraries) and two app folders with the same features:
+The repository has one shared `Cosmoscape-FS/` folder and two thin app folders:
 
+- `Cosmoscape-FS/`: everything both builds run
+  - `Cosmoscape-FS/cosmoscape_fs/ingest.py`: catalog loader, database schema and helpers
+  - `Cosmoscape-FS/cosmoscape_fs/app.py`: the FastAPI application (`create_app()`)
+  - `Cosmoscape-FS/cosmoscape_fs/desktop.py`: seed install and database import
+    (desktop build only)
+  - `Cosmoscape-FS/frontend/`: the shared page, styles, scripts, textures, fonts and
+    bundled libraries
 - `Cosmoscape-web/`: the browser version (run with `python main.py`)
 - `Cosmoscape-win/`: the Electron desktop version and installer build
 
+`cosmoscape_fs` is the Python package inside `Cosmoscape-FS` (a folder name with a
+dash cannot be imported directly, so the package carries a valid name).
+
 Inside each app folder:
 
-- `main.py`: FastAPI backend
-- `ingest.py`: catalog loader and database helpers
+- `main.py`: entry point, it only starts the shared application
+- `ingest.py`: entry point for the catalog loader (`python ingest.py --all`)
 - `electron/`: desktop shell (`main.js`, `loading.html`), `Cosmoscape-win/` only
 - `build_backend.py`: bundles the backend with PyInstaller, `Cosmoscape-win/` only
 - `package_db.py`: compresses a database for hosting
 - `build/`: app icons for the installers
 - `tools/`: helper scripts
+
+The database, the notes and the download caches live in the user data folder, so both
+builds always show the same catalogue.
 
 ## License
 

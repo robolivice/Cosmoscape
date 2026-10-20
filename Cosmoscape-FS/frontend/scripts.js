@@ -21,7 +21,7 @@ function dismissLoader() {
 }
 function hideLoader() {
     if (loaderDone) return;
-    if (texPending > 0 || THREE.DefaultLoadingManager.isLoading) {
+    if (texPending > 0) {
         setTimeout(hideLoader, 100);
         return;
     }
@@ -35,7 +35,13 @@ const ktx2Loader = new THREE.KTX2Loader()
     .setTranscoderPath('static/vendor/three/examples/js/libs/basis/')
     .detectSupport(renderer);
 function loadTex(url) {
-    if (!url.endsWith('.ktx2')) return textureLoader.load(url);
+    if (!url.endsWith('.ktx2')) {
+        texPending++;
+        return textureLoader.load(url, () => { texPending--; }, undefined, err => {
+            console.error('Texture failed:', url, err);
+            texPending--;
+        });
+    }
     const tex = new THREE.CompressedTexture();
     texPending++;
     ktx2Loader.load(url, loaded => {

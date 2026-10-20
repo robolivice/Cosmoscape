@@ -46,7 +46,7 @@ this project, and the generated stars are placeholders, not real catalog data.
 
 ## Software and fonts
 
-Bundled with the app (stored in `frontend/vendor/` and `frontend/fonts/`, no CDN needed):
+Bundled with the app (stored in `Cosmoscape-FS/frontend/vendor/` and `Cosmoscape-FS/frontend/fonts/`, no CDN needed):
 
 - [three.js](https://threejs.org/) r147 (MIT)
 - [marked](https://github.com/markedjs/marked) (MIT)

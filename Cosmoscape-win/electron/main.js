@@ -100,8 +100,9 @@ async function restartBackend() {
 }
 
 function watchBackend() {
-  const root = path.join(__dirname, "..");
-  const skip = /(^|[\\/])(node_modules|release|build|dist|__pycache__|venv|\.venv|\.git)([\\/]|$)/;
+  const appRoot = path.join(__dirname, "..");
+  const sharedBackend = path.join(__dirname, "..", "..", "Cosmoscape-FS");
+  const skip = /(^|[\\/])(node_modules|release|build|dist|__pycache__|venv|\.venv|\.git|seed|data)([\\/]|$)/;
   let timer = null, busy = false, again = false;
 
   const run = async () => {
@@ -116,14 +117,19 @@ function watchBackend() {
     if (again) { again = false; run(); }
   };
 
-  try {
-    fs.watch(root, { recursive: true }, (evt, file) => {
-      if (!file || !file.endsWith(".py") || skip.test(file)) return;
-      clearTimeout(timer);
-      timer = setTimeout(run, 300);
-    });
-  } catch (e) {
-    console.warn("[dev] backend watcher unavailable:", e.message);
+  const handler = (evt, file) => {
+    if (!file || !file.endsWith(".py") || skip.test(file)) return;
+    clearTimeout(timer);
+    timer = setTimeout(run, 300);
+  };
+
+  for (const dir of [appRoot, sharedBackend]) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      fs.watch(dir, { recursive: true }, handler);
+    } catch (e) {
+      console.warn("[dev] backend watcher unavailable for", dir, e.message);
+    }
   }
 }
 

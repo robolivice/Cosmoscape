@@ -5,6 +5,37 @@ All notable changes to Cosmoscape are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- One shared backend for both builds: the new `Cosmoscape-FS/` folder holds the FastAPI
+  application (`Cosmoscape-FS/cosmoscape_fs/app.py`), the catalog loader
+  (`Cosmoscape-FS/cosmoscape_fs/ingest.py`), the desktop only parts
+  (`Cosmoscape-FS/cosmoscape_fs/desktop.py`) and the shared frontend
+  (`Cosmoscape-FS/frontend/`). `Cosmoscape-web/main.py` and `Cosmoscape-win/main.py` are
+  now thin entry points, and `ingest.py` in both app folders is a wrapper around the
+  shared loader.
+- Both builds now use the same database, the same notes and the same download caches in
+  the user data folder, so one catalogue serves the browser and the desktop app.
+- The database is opened with read-only connections that can be dropped and reopened,
+  so the desktop build can replace the catalogue file while the server is running
+  (Windows refuses to replace a file that is still open).
+- Search uses a trigram index with a LIKE fallback, answers are cached per database
+  version and the response body is compressed.
+
+### Added
+- `GET /api/health` for the Electron shell.
+- `POST /api/wiki/{name}`, `POST /api/wiki/fill` and `GET /api/wiki/fill/status` to pull
+  Wikipedia summaries into the notes.
+- Notes are looked up by alias as well, so "Sun" opens the note of "Sol".
+
+### Fixed
+- `GET /api/info/{name}` no longer writes a stub file for every requested name, and
+  `PUT` limits the note to 200,000 characters and sanitises the file name.
+- LIKE wildcards typed in the search box are escaped, so a `%` is no longer a wildcard.
+- The server prints a warning and answers with 503 when the frontend folder is missing,
+  instead of starting and serving nothing.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added
