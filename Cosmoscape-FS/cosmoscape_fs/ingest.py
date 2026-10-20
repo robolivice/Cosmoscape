@@ -136,7 +136,7 @@ LANDMARKS = [
 GALAXY_INFO = {
     "Milky_Way":              {"radius_ly": 50000,  "display": 6000, "tilt": 0.35, "center": (26700.0, 0.0, 0.0),
                                "texture": "/static/textures/galaxy_top.jpg"},
-    "Andromeda_Galaxy":       {"radius_ly": 110000, "display": 4000, "tilt": 0.8, "texture": "/static/textures/Andromeda2.png"},
+    "Andromeda_Galaxy":       {"radius_ly": 110000, "display": 4000, "tilt": 0.8, "texture": "/static/textures/Andromeda2.jpg"},
     "Triangulum_Galaxy":      {"radius_ly": 30000,  "display": 900,  "tilt": 0.3},
     "Large_Magellanic_Cloud": {"radius_ly": 14000,  "display": 700,  "tilt": 0.5},
     "Small_Magellanic_Cloud": {"radius_ly": 9000,   "display": 550,  "tilt": 0.2},

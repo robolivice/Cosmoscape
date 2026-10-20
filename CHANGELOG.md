@@ -5,7 +5,7 @@ All notable changes to Cosmoscape are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-10-20
 
 ### Changed
 - One shared backend for both builds: the new `Cosmoscape-FS/` folder holds the FastAPI
@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Windows refuses to replace a file that is still open).
 - Search uses a trigram index with a LIKE fallback, answers are cached per database
   version and the response body is compressed.
+- The galaxy textures are shipped at 4096 px instead of 5600-5900 px. They still hold
+  more detail than the screen can show, but they load and upload much faster and use
+  about half the graphics memory.
+- Source comments were removed from the first-party files. The Python code had none, so
+  this only affects `Cosmoscape-FS/frontend/scripts.js`, `Cosmoscape-FS/frontend/styles.css`
+  and `Cosmoscape-win/electron/main.js`.
+- `Cosmoscape-FS/frontend/textures/Andromeda.png` is no longer tracked in the
+  repository. Nothing referenced it, and it is now in `.gitignore`.
 
 ### Added
 - `GET /api/health` for the Electron shell.
@@ -30,11 +38,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Notes are looked up by alias as well, so "Sun" opens the note of "Sol".
 
 ### Fixed
+- Desktop: the loading screen no longer fades out before the galaxy textures have
+  loaded. The status text the Electron shell watches is now published after the
+  textures are in, so the galaxies are already on screen when the screen fades.
+  `scripts.js` waits for the pending textures, `electron/main.js` allows more time
+  for it.
+- The galaxy textures are much smaller: `Andromeda2.png` (5884x5439, 33 MB, 122 MB in
+  VRAM) is now `Andromeda2.jpg` (4096x3786, 2.3 MB) and `galaxy_top.jpg` is downscaled
+  from 5600x5600 to 4096x4096. They are still above 1:1 at the normal viewing distance,
+  but they decode and upload far faster and use half the graphics memory, which is what
+  made the loading screen stall on weaker hardware.
 - `GET /api/info/{name}` no longer writes a stub file for every requested name, and
   `PUT` limits the note to 200,000 characters and sanitises the file name.
 - LIKE wildcards typed in the search box are escaped, so a `%` is no longer a wildcard.
 - The server prints a warning and answers with 503 when the frontend folder is missing,
   instead of starting and serving nothing.
+- Desktop: the health check has a timeout, so a backend that accepts the connection but
+  never answers can no longer freeze the shell.
 
 ## [1.1.0] - 2026-10-18
 
@@ -120,6 +140,7 @@ First release.
 - If you add a Content Security Policy, `script-src` needs `'wasm-unsafe-eval'` and
   `'unsafe-inline'`, and `worker-src` needs `blob:`.
 
+[1.2.0]: https://github.com/robolivice/cosmoscape/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/robolivice/cosmoscape/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/robolivice/cosmoscape/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/robolivice/cosmoscape/releases/tag/v1.0.0

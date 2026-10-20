@@ -281,7 +281,6 @@ body {
     }
 }
 
-/* From Uiverse.io by Navarog21 */
 .stardust,
 .cosmic-ring,
 .starfield,
@@ -972,7 +971,6 @@ canvas {
     75% { content: "..."; }
 }
 .desktop #loader { display: none !important; }
-/* ---------- Navigator entrance animation ---------- */
 @property --p {
     syntax: '<number>';
     inherits: true;
@@ -988,7 +986,6 @@ canvas {
 #ui { --ld: 0.7s; }
 .desktop #ui { --ld: 0s; }
 
-/* 1. beam draws the whole top edge (0 to 1.2s), 2. body rolls down (1.25s on) */
 #loader.out ~ #ui,
 .desktop #ui {
     animation:
@@ -1006,7 +1003,6 @@ canvas {
     to   { --roll: 1; }
 }
 
-/* comet tail + planet dot; follows the top edge, dropping down the cut corner */
 .ld-beam {
     position: absolute;
     left: calc(var(--p) * 100% - 90px - var(--p) * 4px);
@@ -1043,7 +1039,6 @@ canvas {
     animation: dotFlare 0.5s ease-out calc(var(--ld) + 1.1s);
 }
 
-/* bar flashes once when the dot arrives */
 #loader.out ~ #ui::before,
 .desktop #ui::before {
     animation: barFlash 0.6s ease-out calc(var(--ld) + 1.15s);

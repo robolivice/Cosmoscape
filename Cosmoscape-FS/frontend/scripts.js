@@ -8,6 +8,26 @@ let currentStar = null;
 let currentMarkdown = "";
 let loaderDone = false;
 let texPending = 0;
+const texWaiters = [];
+function texDone() {
+    texPending--;
+    if (texPending <= 0 && texWaiters.length) {
+        texWaiters.splice(0).forEach(w => { clearTimeout(w.timer); w.resolve(); });
+    }
+}
+function whenTexturesReady(timeoutMs = 45000) {
+    if (texPending <= 0) return Promise.resolve();
+    return new Promise(resolve => {
+        const waiter = { resolve, timer: null };
+        waiter.timer = setTimeout(() => {
+            const i = texWaiters.indexOf(waiter);
+            if (i >= 0) texWaiters.splice(i, 1);
+            console.warn('textures still pending after', timeoutMs + 'ms');
+            resolve();
+        }, timeoutMs);
+        texWaiters.push(waiter);
+    });
+}
 function dismissLoader() {
     if (loaderDone) return;
     loaderDone = true;
@@ -37,9 +57,9 @@ const ktx2Loader = new THREE.KTX2Loader()
 function loadTex(url) {
     if (!url.endsWith('.ktx2')) {
         texPending++;
-        return textureLoader.load(url, () => { texPending--; }, undefined, err => {
+        return textureLoader.load(url, () => { texDone(); }, undefined, err => {
             console.error('Texture failed:', url, err);
-            texPending--;
+            texDone();
         });
     }
     const tex = new THREE.CompressedTexture();
@@ -49,10 +69,10 @@ function loadTex(url) {
         tex.encoding = THREE.LinearEncoding;
         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
         tex.needsUpdate = true;
-        texPending--;
+        texDone();
     }, undefined, err => {
         console.error('KTX2 failed:', url, err);
-        texPending--;
+        texDone();
     });
     return tex;
 }
@@ -87,7 +107,6 @@ const earthMaterial = new THREE.ShaderMaterial({
                 varying vec3 vNormal;
                 void main() {
                     vUv = uv;
-                    // Pass world-space normals to match light vectors
                     vNormal = normalize(vec3(modelMatrix * vec4(normal, 0.0))); 
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
@@ -99,9 +118,7 @@ const earthMaterial = new THREE.ShaderMaterial({
                 varying vec2 vUv;
                 varying vec3 vNormal;
                 void main() {
-                    // Compare surface direction to sun direction
                     float intensity = dot(vNormal, uSunDirection);
-                    // Create a soft twilight transition zone
                     float mixAmount = smoothstep(-0.15, 0.15, intensity);
                     
                     vec4 dayColor = texture2D(uDayTexture, vUv);
@@ -341,18 +358,20 @@ async function loadGalaxies() {
         galaxyList = await res.json();
         setLoaderMsg('Loading textures');
         galaxyList.forEach(g => {
-            document.getElementById('status').innerText = "SYS STATUS: ONLINE // CLICK A GALAXY TO ENTER";
             const pivot = createGalaxyMesh(g);
             scene.add(pivot);
             galaxyMeshes.push(pivot);
             galaxyHits.push(pivot.userData.mesh);
         });
+        let onlineMsg = "SYS STATUS: ONLINE // CLICK A GALAXY TO ENTER";
         try {
             const st = await (await fetch('/api/status')).json();
             if (st.stars < 1000) {
-                document.getElementById('status').innerText = 'Starter data only. Run ingest.py --all for the full catalog.';
+                onlineMsg = 'Starter data only. Run ingest.py --all for the full catalog.';
             }
         } catch (e) { }
+        await whenTexturesReady();
+        document.getElementById('status').innerText = onlineMsg;
     } catch (e) {
         console.error('galaxy load failed', e);
         document.getElementById('status').innerText = 'Galaxy load failed.';
@@ -1173,7 +1192,6 @@ function flyTo(target, distance, dirOverride, duration, straight) {
                 camera.position.copy(startPos);
                 camera.lookAt(lookTarget);
             } else {
-                // phase 2: fly in with the star already centered
                 const k = Math.min((tt - turnDur) / travelDur, 1);
                 const e = k * k * k * (k * (k * 6 - 15) + 10);
                 controls.target.copy(endTarget);

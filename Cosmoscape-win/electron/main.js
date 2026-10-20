@@ -37,10 +37,12 @@ function backendCommand(port) {
 }
 
 async function waitForBackend(port) {
-  for (let i = 0; i < 240; i++) {
+  for (let i = 0; i < 300; i++) {
     if (!backend) return false;
     try {
-      const r = await fetch("http://127.0.0.1:" + port + "/api/health");
+      const r = await fetch("http://127.0.0.1:" + port + "/api/health", {
+        signal: AbortSignal.timeout(5000),
+      });
       if (r.ok) return true;
     } catch (e) {}
     await new Promise((r) => setTimeout(r, 500));
@@ -134,7 +136,7 @@ function watchBackend() {
 }
 
 async function waitForOnline(wc) {
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 240; i++) {
     if (wc.isDestroyed()) return;
     try {
       const txt = await wc.executeJavaScript(
