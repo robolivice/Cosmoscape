@@ -1,23 +1,3 @@
-"""
-app.py - the shared FastAPI backend for the web build and the desktop build.
-
-Both `Cosmoscape-web/main.py` and `Cosmoscape-win/main.py` are thin wrappers
-around `create_app()` in this module, so there is exactly one copy of the API.
-
-Environment variables:
-    COSMOSCAPE_DATA           data folder (database, notes, caches)
-    COSMOSCAPE_DB             full path of the SQLite database
-    COSMOSCAPE_MARKDOWN       full path of the notes folder
-    COSMOSCAPE_CACHE          full path of the download cache folder
-    COSMOSCAPE_FRONTEND       full path of the shared frontend folder
-    COSMOSCAPE_SEARCH_DB      full path of the search index
-    COSMOSCAPE_SEARCH         0 disables the search index (LIKE fallback only)
-    COSMOSCAPE_SEARCH_SYNC    1 builds the search index during startup
-    COSMOSCAPE_WIKI_AUTO      0 disables the Wikipedia lookup on a note request
-    COSMOSCAPE_WIKI_FILL      number of notes to fill in the background at startup
-    COSMOSCAPE_STATIC_MAX_AGE cache lifetime of /static files in seconds (0 = no-cache)
-    COSMOSCAPE_RELOAD         1 enables the auto reloader in the entry points
-"""
 import json
 import math
 import os
@@ -63,7 +43,6 @@ def _env_int(name, default=0):
 
 
 def _default_frontend_dir():
-    """The one shared frontend folder (next to the package in development)."""
     if getattr(sys, "frozen", False):
         return ingest.resource_path("frontend")
     for base in (FS_DIR, REPO_ROOT):
@@ -108,13 +87,6 @@ def _new_conn(path, *, query_only=False):
 
 
 class _DbPool:
-    """One read-only connection per thread, with the ability to drop them all.
-
-    The desktop build replaces the database file while the server is running.
-    Windows refuses to replace a file that is still open, so every connection
-    has to be closed first. The generation counter makes the threads pick up
-    the new file the next time they ask for a connection.
-    """
 
     def __init__(self, path):
         self.path = path
@@ -153,7 +125,6 @@ def db():
 
 
 def close_db_connections():
-    """Close every open database connection (before the file is replaced)."""
     _pool.close_all()
 
 
@@ -199,12 +170,22 @@ def ensure_database():
     if folder:
         os.makedirs(folder, exist_ok=True)
     os.makedirs(MARKDOWN_DIR, exist_ok=True)
+    fresh = not os.path.exists(DB_NAME)
     conn = _new_conn(DB_NAME)
     try:
         ingest.init_schema(conn)
-        if conn.execute("SELECT COUNT(*) FROM stars").fetchone()[0] == 0:
+        stars = conn.execute("SELECT COUNT(*) FROM stars").fetchone()[0]
+        if stars == 0:
             print("db: empty catalog, seeding curated stars", flush=True)
             ingest.seed_curated(conn)
+            if fresh:
+                print(
+                    f"db: WARNING - a new, nearly empty database was created at\n"
+                    f"db:          {DB_NAME}\n"
+                    f"db:          it only holds the hand-picked stars, not your catalogue.\n"
+                    f"db:          build the full catalogue with: python ingest.py --all",
+                    flush=True,
+                )
 
         created = []
         for name, sql in EXTRA_INDEXES:
@@ -344,7 +325,6 @@ def start_search_warmup():
 
 
 def refresh_after_db_swap():
-    """Called after the database file was replaced (desktop import)."""
     clear_response_cache()
     close_db_connections()
     try:
@@ -420,7 +400,6 @@ def _is_placeholder(text, name=None):
 
 
 def canonical_star_name(conn, name):
-    """The catalogue name of a star, found by name or by alias."""
     row = conn.execute("SELECT name FROM stars WHERE name = ? COLLATE NOCASE", (name,)).fetchone()
     if row:
         return row[0]
@@ -538,7 +517,6 @@ class MarkdownUpdate(BaseModel):
 
 
 def markdown_filename(name: str) -> str:
-    """The note file name of an object (same rule as the catalog loader)."""
     stem = ingest.note_stem(name)
     if len(stem) > MAX_MARKDOWN_NAME:
         raise HTTPException(status_code=400, detail="Object name is too long for a note file")
@@ -565,12 +543,6 @@ def write_atomic(path: str, content: str):
 
 
 def resolve_note(conn, requested):
-    """Find the note file for a name.
-
-    Returns (canonical_name, path). The requested name wins when it has a file,
-    otherwise the canonical star name is used, so an alias such as "Sun" opens
-    the note of "Sol".
-    """
     path = markdown_path(requested)
     if os.path.isfile(path):
         return requested, path
@@ -583,7 +555,6 @@ def resolve_note(conn, requested):
 
 
 def create_app(desktop: bool = False) -> FastAPI:
-    """Build the application. `desktop` adds the seed install and the import."""
 
     desktop_support = None
     startup_hooks = []
@@ -593,7 +564,9 @@ def create_app(desktop: bool = False) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        print(f"db: {DB_NAME}", flush=True)
+        print(f"data    : {ingest.DATA_DIR}", flush=True)
+        print(f"db      : {DB_NAME}", flush=True)
+        print(f"notes   : {MARKDOWN_DIR}", flush=True)
         print(f"frontend: {FRONTEND_DIR}", flush=True)
         for hook in startup_hooks:
             try:
@@ -628,10 +601,6 @@ def create_app(desktop: bool = False) -> FastAPI:
         else:
             response.headers["Cache-Control"] = "no-store"
         return response
-
-    @app.get("/api/health")
-    def health():
-        return {"ok": True}
 
     @app.get("/api/status")
     def api_status():

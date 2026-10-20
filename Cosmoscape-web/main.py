@@ -1,12 +1,3 @@
-"""
-Cosmoscape-web - the browser build.
-
-The whole backend lives in the shared `Cosmoscape-FS/` package at the repository
-root, so this file only starts the server.
-
-    python main.py                 # http://127.0.0.1:8000
-    python main.py --port 8001
-"""
 import os
 import sys
 
@@ -15,7 +6,7 @@ FS_DIR = os.path.join(ROOT, "Cosmoscape-FS")
 if not getattr(sys, "frozen", False) and FS_DIR not in sys.path:
     sys.path.insert(0, FS_DIR)
 
-from cosmoscape_fs.app import create_app  # noqa: E402
+from cosmoscape_fs.app import create_app
 
 app = create_app(desktop=False)
 

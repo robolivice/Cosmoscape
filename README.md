@@ -52,8 +52,14 @@ Need only the viewer with minimal data? You can skip `--all` and run
 `requirements-ingest.txt`, because `ingest.py` imports numpy).
 
 Both builds (web and desktop) use the same backend, the same frontend and the same
-database, so a catalogue you build once is used by both. The catalog loader can also
-be started from the shared folder with `cd Cosmoscape-FS && python -m cosmoscape_fs.ingest --all`.
+database, so a catalogue you build once is used by both. The catalog loader can be
+started from anywhere:
+
+```bash
+python ingest.py --all                              # from Cosmoscape-web/ or Cosmoscape-win/
+python -m cosmoscape_fs.ingest --all                # from the repository root
+cd Cosmoscape-FS && python -m cosmoscape_fs.ingest --all
+```
 
 ### Where your data is stored
 
@@ -66,7 +72,28 @@ The database (`universe.db`), your notes (`database/*.md`) and the download cach
 | macOS | `~/Library/Application Support/Cosmoscape` |
 | Linux | `~/.local/share/Cosmoscape` |
 
-Set the `COSMOSCAPE_DATA` environment variable to use a different folder.
+The server prints the paths it uses on startup:
+
+```
+data    : C:\Users\<you>\AppData\Local\Cosmoscape
+db      : C:\Users\<you>\AppData\Local\Cosmoscape\universe.db
+notes   : C:\Users\<you>\AppData\Local\Cosmoscape\database
+frontend: ...\Cosmoscape-FS\frontend
+```
+
+The location can be changed with environment variables (the first one that is set
+wins):
+
+| Variable | Overrides |
+|---|---|
+| `COSMOSCAPE_DB` | the database file |
+| `COSMOSCAPE_DATA` | the whole data folder (database, notes, caches) |
+| `COSMOSCAPE_MARKDOWN` | the notes folder |
+| `COSMOSCAPE_CACHE` | the download cache folder |
+
+If the server starts with a `db: WARNING - a new, nearly empty database was
+created`, it did not find your catalogue (usually a leftover `COSMOSCAPE_DB`
+variable). Unset it (`Remove-Item Env:COSMOSCAPE_DB`) and check the printed path.
 
 ## Desktop app (Electron)
 
@@ -169,6 +196,8 @@ The repository has one shared `Cosmoscape-FS/` folder and two thin app folders:
     (desktop build only)
   - `Cosmoscape-FS/frontend/`: the shared page, styles, scripts, textures, fonts and
     bundled libraries
+- `cosmoscape_fs/`: a one file import shim, so `import cosmoscape_fs` also works
+  from the repository root
 - `Cosmoscape-web/`: the browser version (run with `python main.py`)
 - `Cosmoscape-win/`: the Electron desktop version and installer build
 

@@ -1,10 +1,3 @@
-"""
-desktop.py - the parts that only the desktop build needs.
-
-The web build has no installer and no download host, so it keeps the import
-routes as "not implemented". The desktop build copies a bundled seed database
-into the user data folder on first launch and can download a newer catalogue.
-"""
 import gzip
 import hashlib
 import os
@@ -16,26 +9,23 @@ import urllib.request
 
 from . import ingest
 
-# Where the prebuilt database is hosted (see package_db.py, step 4b).
+
 DB_URL = os.environ.get("COSMOSCAPE_DB_URL", "https://YOUR-HOST/universe.db.gz")
-DB_SHA256 = os.environ.get("COSMOSCAPE_DB_SHA256", "")   # "" skips the check
+DB_SHA256 = os.environ.get("COSMOSCAPE_DB_SHA256", "")
 
 
 def seed_dir():
-    """Folder with the bundled seed database and notes."""
     if getattr(sys, "frozen", False):
         return ingest.resource_path("seed")
     return os.path.join(ingest.REPO_ROOT, "Cosmoscape-win", "seed")
 
 
 def _paths():
-    """The database and notes folder the running application uses."""
     from . import app as app_module
     return app_module.DB_NAME, app_module.MARKDOWN_DIR
 
 
 def install_seed():
-    """Copy the bundled database into the user data folder on first launch."""
     seed = os.path.join(seed_dir(), "universe.db")
     if not os.path.exists(seed):
         print("seed database not found:", seed)
@@ -68,7 +58,6 @@ def install_seed():
 
 
 def install_seed_notes():
-    """Copy the bundled notes into the user data folder."""
     src_dir = os.path.join(seed_dir(), "database")
     if not os.path.isdir(src_dir):
         return
@@ -142,8 +131,8 @@ def run_import():
             raise Exception("Downloaded database is empty")
 
         set_import("running", 97, "Installing")
-        # The server keeps read connections open, and Windows refuses to replace
-        # a file that is still open.
+
+
         app_module.close_db_connections()
         for suffix in ("-wal", "-shm"):
             if os.path.exists(db_name + suffix):

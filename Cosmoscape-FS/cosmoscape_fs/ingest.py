@@ -1,24 +1,3 @@
-"""
-ingest.py - catalog loader and shared database helpers for Universe Navigator.
-
-This module is the single copy used by the web build, the desktop build and the
-CLI. Run it from the repository root with:
-
-    python ingest.py --all          # from Cosmoscape-web/ or Cosmoscape-win/
-    cd Cosmoscape-FS && python -m cosmoscape_fs.ingest --all
-
-    --all                            # everything below, in the right order
-    --curated                        # hand-picked stars + landmarks (offline)
-    --hyg [path]                     # HYG database CSV (~120k stars, auto-download is attempted)
-    --exo                            # NASA Exoplanet Archive: real planets + host stars
-    --simbad                         # SIMBAD: nearby stars + SIMBAD IDs for landmarks
-    --vizier                         # VizieR: open clusters (Cantat-Gaudin+ 2020)
-    --gaia [N]                       # Gaia DR3: N brightest stars within 3 kpc (default 300000)
-    --wiki [N]                       # Wikipedia summaries -> database/*.md (default 150)
-
-All coordinates are stored in the galactic frame in light-years:
-    x -> galactic centre, y -> direction of galactic rotation, z -> north galactic pole, Sun at 0,0,0.
-"""
 import argparse
 import csv
 import glob
@@ -43,19 +22,12 @@ from platformdirs import user_data_dir
 
 APP_NAME = "Cosmoscape"
 
-# This file lives in <repo>/Cosmoscape-FS/cosmoscape_fs/.
-# FS_DIR is the fullstack folder (backend + shared frontend),
-# REPO_ROOT is the repository that holds the two app folders.
+
 FS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO_ROOT = os.path.dirname(FS_DIR)
 
 
 def get_data_dir():
-    """Folder that holds the database, the notes and the download caches.
-
-    Defaults to the per-user data folder so the web build and the desktop build
-    share one catalog. `COSMOSCAPE_DATA` overrides it.
-    """
     d = os.environ.get("COSMOSCAPE_DATA")
     if not d:
         d = user_data_dir(APP_NAME, appauthor=False)
@@ -64,11 +36,6 @@ def get_data_dir():
 
 
 def resource_path(rel):
-    """Path to a bundled resource.
-
-    Frozen builds read from the PyInstaller bundle (`sys._MEIPASS`), development
-    builds read from the repository root.
-    """
     if getattr(sys, "frozen", False):
         base = sys._MEIPASS
     else:
@@ -84,7 +51,7 @@ LY_PER_PC = 3.26156
 CELL = 0.02
 UA = {"User-Agent": "UniverseNavigator/1.0 (personal project)"}
 
-# ICRS (equatorial) -> galactic rotation matrix (Hipparcos / ESA 1997)
+
 A_G = (
     (-0.0548755604162154, -0.8734370902348850, -0.4838350155487132),
     (+0.4941094278755837, -0.4448296299600112, +0.7469822444972189),
@@ -122,7 +89,7 @@ CREATE TABLE IF NOT EXISTS aliases (alias TEXT COLLATE NOCASE, star_id INTEGER);
 CREATE INDEX IF NOT EXISTS idx_alias ON aliases(alias);
 """
 
-# name, ra, dec (deg, J2000), dist_ly, V mag, teff K, spectral type, aliases
+
 CURATED = [
     ("Sol", 0.0, 0.0, 0.0, -26.74, 5772, "G2V", ["Sun"]),
     ("Alpha_Centauri", 219.9021, -60.8340, 4.37, -0.27, 5790, "G2V+K1V", ["Alpha Centauri", "Rigil Kentaurus", "Toliman", "Alpha Cen"]),
@@ -141,8 +108,7 @@ CURATED = [
     ("Capella", 79.1723, 45.9980, 42.9, 0.08, 4970, "G8III", ["Alpha Aurigae"]),
 ]
 
-# name, kind, ra, dec, dist_ly, mag, teff, spect/type, aliases, SIMBAD query name
-# Distances are rounded literature values - treat them as approximate.
+
 LANDMARKS = [
     ("Betelgeuse", "star", 88.7929, 7.4071, 550, 0.5, 3600, "M1-2Ia-ab", ["Alpha Orionis"], "Betelgeuse"),
     ("Rigel", "star", 78.6345, -8.2016, 860, 0.13, 12100, "B8Ia", ["Beta Orionis"], "Rigel"),
@@ -166,10 +132,7 @@ LANDMARKS = [
     ("Triangulum_Galaxy", "galaxy", 23.4621, 30.6599, 2730000, 99, None, "Spiral galaxy", ["M33", "Messier 33"], "M 33"),
 ]
 
-# "display" is the galaxy's diameter in scene units. The galaxy view reflows
-# automatically when you change it: the Milky Way stays anchored and the other
-# galaxies are fitted around it, largest first, so their discs do not overlap
-# (layout_galaxy_scene below).
+
 GALAXY_INFO = {
     "Milky_Way":              {"radius_ly": 50000,  "display": 6000, "tilt": 0.35, "center": (26700.0, 0.0, 0.0),
                                "texture": "/static/textures/galaxy_top.jpg"},
@@ -182,13 +145,6 @@ GALAXY_INFO = {
 GALAXY_LAYOUT_GAP = 1.12
 
 def layout_galaxy_scene(entries):
-    """Keep the on-screen galaxy discs apart when their display sizes change.
-
-    The Milky Way is the anchor. Remaining galaxies are placed largest-first and
-    nudged away from already placed galaxies until their bounding discs no longer
-    overlap. This runs on every /galaxies request, so increasing or decreasing a
-    display value in GALAXY_INFO reflows the scene automatically.
-    """
     order = sorted(entries, key=lambda g: (g["name"] != "Milky_Way", -g["display"]))
     placed = []
     for g in order:
@@ -267,15 +223,12 @@ def fnum(v):
         return None
 
 
-# Note file names. The catalog loader and the server have to agree on them,
-# because they write into the same notes folder.
 RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"}
 RESERVED_NAMES |= {f"COM{i}" for i in range(1, 10)}
 RESERVED_NAMES |= {f"LPT{i}" for i in range(1, 10)}
 
 
 def note_stem(name):
-    """File name stem of the note for an object."""
     clean = "".join(
         ch if ch.isalnum() else "_"
         for ch in unicodedata.normalize("NFC", str(name)).lower()
@@ -329,7 +282,6 @@ def rebuild_index(conn):
 
 
 class SkyIndex:
-    """Finds duplicates across catalogs: same spot on the sky (within ~20 arcsec) and a compatible distance."""
 
     def __init__(self, conn):
         self.cells = {}
@@ -364,7 +316,6 @@ def add_alias(conn, sid, alias):
 
 def insert_star(conn, idx, name, ra, dec, dist_ly, mag=None, teff=None, spect=None, kind="star",
                 source="", ext_id=None, curated=0, aliases=(), rename=False, galaxy="Milky_Way"):
-    """Insert a star unless the same object is already stored. Returns (star_id, created)."""
     if not name:
         return None, False
     dup = idx.find(ra, dec, dist_ly if kind == "star" else None)
@@ -399,7 +350,6 @@ def insert_star(conn, idx, name, ra, dec, dist_ly, mag=None, teff=None, spect=No
 
 
 def seed_curated(conn):
-    """Curated stars + landmarks. Always runs first so catalog duplicates of them are skipped."""
     idx = SkyIndex(conn)
     n = 0
     for name, ra, dec, dist, mag, teff, spect, aliases in CURATED:
@@ -482,7 +432,7 @@ def wiki_fill(conn, limit):
     print(f"wiki: wrote {done} records")
 
 
-HYG_URLS = [   # guesses at the current file names; if all fail, download the CSV manually into ./data/
+HYG_URLS = [
     "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hyg_v42.csv",
     "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hyg_v41.csv",
     "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hygdata_v3.csv",
@@ -751,7 +701,6 @@ def galaxy_center(conn, name):
 
 
 def classify_galaxies(conn):
-    """Tag every real star that lies inside another galaxy's radius with that galaxy's name."""
     for name, info in GALAXY_INFO.items():
         if name == "Milky_Way":
             continue
