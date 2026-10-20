@@ -602,10 +602,6 @@ def create_app(desktop: bool = False) -> FastAPI:
             response.headers["Cache-Control"] = "no-store"
         return response
 
-    @app.get("/api/health")
-    @app.get("/health")
-    def health():
-        return {"ok": True}
 
     @app.get("/api/status")
     def api_status():
