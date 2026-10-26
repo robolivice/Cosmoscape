@@ -4,7 +4,7 @@
 
 **Fly from the Milky Way down to a single star system, right in your browser or as a desktop app.**
 
-<img src="docs/screen.png" alt="Main Startup Screen" width="800">
+<img src="docs/screen.gif" alt="Main Startup Screen" width="800">
 <p style="margin-bottom: 30px;">Main Startup Screen</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
